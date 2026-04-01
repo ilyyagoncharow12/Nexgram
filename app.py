@@ -897,7 +897,9 @@ def handle_typing(data):
         }, room=f"chat_{chat_id}")
 
 
+# В самом конце файла app.py
 if __name__ == '__main__':
-    init_db()
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True)
+else:
+    # Для Vercel
+    application = app
