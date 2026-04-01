@@ -9,12 +9,12 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xgram-secret-key-change-in-production')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'Swillgram-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 # Use file-based database for Render
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'xgram.db')
+DATABASE_PATH = os.environ.get('DATABASE_PATH', 'Swillgram.db')
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
