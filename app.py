@@ -4,27 +4,24 @@ import sqlite3
 import hashlib
 import re
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'Swillgram-secret-key-change-in-production')
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'swillgram-secret-key')
+app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
-# Use file-based database for Render
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'Swillgram.db')
-
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-
-# Ensure directories exist
+# Используем временную директорию для Vercel
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'avatars'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'files'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'videos'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'audio'), exist_ok=True)
+
+# Используем временную БД в /tmp для Vercel
+DATABASE_PATH = '/tmp/swillgram.db'
 
 
 def get_db():
@@ -37,7 +34,6 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +47,6 @@ def init_db():
         )
     ''')
 
-    # Chats table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS chats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,7 +57,6 @@ def init_db():
         )
     ''')
 
-    # Messages table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +74,6 @@ def init_db():
         )
     ''')
 
-    # Calls table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS calls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +88,6 @@ def init_db():
         )
     ''')
 
-    # Contacts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS contacts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +100,6 @@ def init_db():
         )
     ''')
 
-    # Favorites table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS favorites (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -446,7 +437,11 @@ def update_last_seen(user_id):
     conn.close()
 
 
-# Flask routes
+# Инициализируем БД при старте
+init_db()
+
+
+# Routes
 @app.route('/')
 def index():
     if 'user_id' in session:
@@ -542,7 +537,7 @@ def chat_page():
                            favorites=favorites)
 
 
-# API routes
+# API Routes
 @app.route('/api/search_users')
 def api_search_users():
     if 'user_id' not in session:
@@ -653,23 +648,6 @@ def api_send_message():
         file_size=file_size
     )
 
-    socketio.emit('new_message', {
-        'chat_id': chat_id,
-        'message': {
-            'id': message['id'],
-            'sender_id': message['sender_id'],
-            'content': message['content'],
-            'file_type': message['file_type'],
-            'file_path': message['file_path'],
-            'file_name': message['file_name'],
-            'file_size': message['file_size'],
-            'is_read': message['is_read'],
-            'created_at': message['created_at'],
-            'sender_username': message['username'],
-            'sender_avatar': message['avatar']
-        }
-    }, room=f"chat_{chat_id}")
-
     return jsonify({'success': True, 'message': dict(message)})
 
 
@@ -682,11 +660,6 @@ def api_mark_read():
     chat_id = data.get('chat_id')
 
     get_messages(chat_id, session['user_id'])
-
-    socketio.emit('messages_read', {
-        'chat_id': chat_id,
-        'user_id': session['user_id']
-    }, room=f"chat_{chat_id}")
 
     return jsonify({'success': True})
 
@@ -702,13 +675,6 @@ def api_make_call():
 
     call_id = add_call(session['user_id'], receiver_id, call_type, 'ringing')
 
-    socketio.emit('incoming_call', {
-        'call_id': call_id,
-        'caller_id': session['user_id'],
-        'caller_name': session['username'],
-        'call_type': call_type
-    }, room=f"user_{receiver_id}")
-
     return jsonify({'success': True, 'call_id': call_id})
 
 
@@ -721,11 +687,6 @@ def api_answer_call():
     call_id = data.get('call_id')
 
     update_call_status(call_id, 'answered')
-
-    socketio.emit('call_answered', {
-        'call_id': call_id,
-        'user_id': session['user_id']
-    })
 
     return jsonify({'success': True})
 
@@ -859,47 +820,11 @@ def uploaded_file(filename):
     return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
 
-# Socket.IO events
-@socketio.on('connect')
-def handle_connect():
-    if 'user_id' in session:
-        join_room(f"user_{session['user_id']}")
-        emit('connected', {'user_id': session['user_id']})
+# Vercel handler
+app.secret_key = os.environ.get('SECRET_KEY', 'swillgram-secret-key')
+app.config['SESSION_TYPE'] = 'filesystem'
 
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    if 'user_id' in session:
-        leave_room(f"user_{session['user_id']}")
-
-
-@socketio.on('join_chat')
-def handle_join_chat(data):
-    if 'user_id' in session:
-        chat_id = data.get('chat_id')
-        join_room(f"chat_{chat_id}")
-
-
-@socketio.on('leave_chat')
-def handle_leave_chat(data):
-    if 'user_id' in session:
-        chat_id = data.get('chat_id')
-        leave_room(f"chat_{chat_id}")
-
-
-@socketio.on('typing')
-def handle_typing(data):
-    if 'user_id' in session:
-        chat_id = data.get('chat_id')
-        emit('user_typing', {
-            'user_id': session['user_id'],
-            'username': session['username']
-        }, room=f"chat_{chat_id}")
-
-
-# В самом конце файла app.py
-if __name__ == '__main__':
-    app.run(debug=True)
-else:
-    # Для Vercel
-    application = app
+# Для Vercel
+def handler(request, context):
+    return app(request, context)
