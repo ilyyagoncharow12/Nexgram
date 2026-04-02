@@ -82,6 +82,21 @@
             color: white;
         }
 
+        .new-chat-btn {
+            background: #667eea;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Search Bar */
         .search-bar {
             padding: 12px 16px;
         }
@@ -465,7 +480,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             padding: 8px 0;
-            min-width: 220px;
+            min-width: 200px;
             z-index: 2000;
             display: none;
         }
@@ -584,26 +599,19 @@
 
         /* Profile */
         .profile-avatar-large {
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
             margin: 0 auto 16px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 42px;
+            font-size: 36px;
             font-weight: 600;
             color: white;
             overflow: hidden;
             cursor: pointer;
-            position: relative;
-        }
-
-        .profile-avatar-large img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
 
         .profile-field {
@@ -826,6 +834,55 @@
             margin-bottom: 16px;
         }
 
+        /* Search results */
+        .search-results {
+            position: absolute;
+            background: white;
+            width: calc(100% - 32px);
+            margin-top: 4px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        body.dark .search-results {
+            background: #2a2a2a;
+        }
+
+        /* Call controls */
+        .call-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        .call-btn-accept {
+            background: #10b981;
+            color: white;
+        }
+
+        .call-btn-reject {
+            background: #ef4444;
+            color: white;
+        }
+
+        .call-btn-end {
+            background: #ef4444;
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 position: absolute;
@@ -850,17 +907,21 @@
 </head>
 <body>
     <div class="app">
+        <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <button class="hamburger-btn" onclick="toggleBurgerMenu()">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h2>Swillgram</h2>
-                <div style="width: 40px;"></div>
+                <button class="new-chat-btn" onclick="openNewChatModal()">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
 
-            <div class="search-bar">
-                <input type="text" placeholder="Поиск..." id="chatSearch">
+            <div class="search-bar" style="position: relative;">
+                <input type="text" placeholder="Поиск или новый чат..." id="globalSearch" oninput="searchUsers()">
+                <div id="searchResults" class="search-results" style="display: none;"></div>
             </div>
 
             <div class="chats-list" id="chatsList">
@@ -901,6 +962,7 @@
             </div>
         </div>
 
+        <!-- Chat Area -->
         <div class="chat-area" id="chatArea">
             <div class="chat-header-area">
                 <button class="back-btn" onclick="toggleSidebar()">
@@ -959,11 +1021,11 @@
             <span>Переслать</span>
         </div>
         <div class="context-menu-divider"></div>
-        <div class="context-menu-item" onclick="contextMenuDelete()">
+        <div class="context-menu-item danger" onclick="contextMenuDelete()">
             <i class="fas fa-trash-alt"></i>
             <span>Удалить</span>
         </div>
-        <div class="context-menu-item" onclick="contextMenuDeleteForAll()">
+        <div class="context-menu-item danger" onclick="contextMenuDeleteForAll()">
             <i class="fas fa-trash-alt"></i>
             <span>Удалить для всех</span>
         </div>
@@ -1021,7 +1083,7 @@
         </div>
     </div>
 
-    <!-- Profile Modal (Мой профиль) -->
+    <!-- Profile Modal -->
     <div class="modal" id="profileModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1062,7 +1124,7 @@
         </div>
     </div>
 
-    <!-- User Profile Modal (Профиль другого пользователя) -->
+    <!-- User Profile Modal -->
     <div class="modal" id="userProfileModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1094,7 +1156,36 @@
                     <input type="text" id="userProfileLastSeen" readonly>
                 </div>
 
-                <button class="profile-btn-primary" onclick="closeModal('userProfileModal')">Закрыть</button>
+                <button class="profile-btn-primary" onclick="addContactFromProfile()">➕ Добавить в контакты</button>
+                <button class="profile-btn-primary" onclick="closeModal('userProfileModal')" style="margin-top: 10px;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal" id="newChatModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Новый чат</h3>
+                <button class="modal-close" onclick="closeModal('newChatModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="newChatSearch" placeholder="Поиск по номеру или имени..." style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:24px; margin-bottom:16px;">
+                <div id="newChatResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div class="modal" id="addContactModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Добавить контакт</h3>
+                <button class="modal-close" onclick="closeModal('addContactModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="contactSearchInput" placeholder="Поиск по номеру или имени..." style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:24px; margin-bottom:16px;">
+                <div id="contactSearchResults"></div>
             </div>
         </div>
     </div>
@@ -1160,14 +1251,6 @@
                     <label>Закругление сообщений: <span id="bubbleRadiusValue">18</span>px</label>
                     <input type="range" id="bubbleRadiusRange" min="4" max="30" value="18" style="width:100%;">
                 </div>
-                <div class="profile-field">
-                    <label>Обои чата</label>
-                    <div>
-                        <div class="wallpaper-option" style="display:inline-block; width:50px; height:50px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:12px; margin:4px; cursor:pointer;" onclick="setWallpaper('linear-gradient(135deg, #667eea 0%, #764ba2 100%)')"></div>
-                        <div class="wallpaper-option" style="display:inline-block; width:50px; height:50px; background:#1a1a1a; border-radius:12px; margin:4px; cursor:pointer;" onclick="setWallpaper('#1a1a1a')"></div>
-                        <div class="wallpaper-option" style="display:inline-block; width:50px; height:50px; background:#f0f0f0; border-radius:12px; margin:4px; cursor:pointer;" onclick="setWallpaper('#f0f0f0')"></div>
-                    </div>
-                </div>
                 <button class="profile-btn-primary" onclick="saveAppearanceSettings()">Сохранить</button>
             </div>
         </div>
@@ -1181,7 +1264,6 @@
                 <button class="modal-close" onclick="closeModal('contactsModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <input type="text" id="contactsSearch" placeholder="Поиск..." style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:24px; margin-bottom:16px;">
                 <div id="contactsListModal"></div>
             </div>
         </div>
@@ -1195,7 +1277,6 @@
                 <button class="modal-close" onclick="closeModal('callsModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <button class="profile-btn-primary" onclick="showNewCallModal()" style="margin-bottom:16px;">Новый звонок</button>
                 <div id="callsListModal"></div>
             </div>
         </div>
@@ -1266,34 +1347,6 @@
         </div>
     </div>
 
-    <!-- New Call Modal -->
-    <div class="modal" id="newCallModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Новый звонок</h3>
-                <button class="modal-close" onclick="closeModal('newCallModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="callSearch" placeholder="Поиск контакта..." style="width:100%; padding:12px; background:#f3f4f6; border:none; border-radius:24px; margin-bottom:16px;">
-                <div id="callContactsList"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Call Type Modal -->
-    <div class="modal" id="callTypeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Выберите тип звонка</h3>
-                <button class="modal-close" onclick="closeModal('callTypeModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <button class="profile-btn-primary" onclick="initiateCall('audio')" style="margin-bottom:12px;">📞 Аудиозвонок</button>
-                <button class="profile-btn-primary" onclick="initiateCall('video')">📹 Видеозвонок</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Delete Message Options Modal -->
     <div class="modal" id="deleteMessageModal">
         <div class="modal-content">
@@ -1308,6 +1361,62 @@
         </div>
     </div>
 
+    <!-- Incoming Call Modal -->
+    <div class="modal" id="incomingCallModal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="modal-header">
+                <h3 id="incomingCallerName">Входящий звонок...</h3>
+                <button class="modal-close" onclick="rejectCall()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-avatar-large" id="incomingCallerAvatar" style="margin: 0 auto 20px;">
+                    <span>?</span>
+                </div>
+                <div class="profile-field">
+                    <p id="incomingCallType" style="font-size: 18px;">📞 Аудиозвонок</p>
+                </div>
+                <div class="call-controls">
+                    <button class="call-btn call-btn-accept" onclick="acceptCall()">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="call-btn call-btn-reject" onclick="rejectCall()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Call Modal -->
+    <div class="modal" id="activeCallModal">
+        <div class="modal-content" style="text-align: center; max-width: 500px;">
+            <div class="modal-header">
+                <h3 id="activeCallName">Звонок...</h3>
+                <button class="modal-close" onclick="endCall()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="localVideoContainer" style="margin-bottom: 20px; position: relative;">
+                    <video id="localVideo" autoplay muted playsinline style="width: 100%; border-radius: 12px; background: #2a2a2a;"></video>
+                </div>
+                <div id="remoteVideoContainer">
+                    <video id="remoteVideo" autoplay playsinline style="width: 100%; border-radius: 12px; background: #2a2a2a;"></video>
+                </div>
+                <div id="callTimer" style="font-size: 32px; margin: 20px 0; color: #667eea; font-weight: 600;">00:00</div>
+                <div class="call-controls">
+                    <button id="toggleAudioBtn" onclick="toggleAudio()" class="call-btn" style="background: #667eea; color: white;">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button id="toggleVideoBtn" onclick="toggleVideo()" class="call-btn" style="background: #667eea; color: white;">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button onclick="endCall()" class="call-btn call-btn-end">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <input type="file" id="fileInput" style="display: none;" multiple>
     <input type="file" id="avatarInput" style="display: none;" accept="image/*">
 
@@ -1316,20 +1425,40 @@
         let currentChatId = null;
         let currentUserId = null;
         let currentUsername = null;
-        let selectedCallContact = null;
         let isSending = false;
         let currentContextMessageId = null;
         let currentContextMessageContent = null;
         let currentContextMessageElement = null;
 
+        // WebRTC переменные
+        let peerConnection = null;
+        let localStream = null;
+        let currentCallId = null;
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let isAudioMuted = false;
+        let isVideoOff = false;
+        let pendingCall = null;
+        let currentCallType = 'audio';
+
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        };
+
         function initSocket() {
             socket = io();
+
             socket.on('new_message', function(data) {
                 if (data.chat_id == currentChatId) {
                     displayMessage(data.message);
                 }
                 updateChatsList();
             });
+
             socket.on('message_edited', function(data) {
                 const msgDiv = document.querySelector(`.message[data-message-id="${data.message_id}"]`);
                 if (msgDiv) {
@@ -1341,11 +1470,165 @@
                     }
                 }
             });
+
             socket.on('message_deleted', function(data) {
                 const msgDiv = document.querySelector(`.message[data-message-id="${data.message_id}"]`);
                 if (msgDiv) msgDiv.remove();
             });
+
+            // WebRTC обработчики
+            socket.on('incoming_call', function(data) {
+                pendingCall = data;
+                document.getElementById('incomingCallerName').innerText = data.caller_name;
+                document.getElementById('incomingCallType').innerHTML = data.call_type === 'video' ? '📹 Видеозвонок' : '📞 Аудиозвонок';
+                if (data.caller_avatar) {
+                    document.getElementById('incomingCallerAvatar').innerHTML = `<img src="/${data.caller_avatar}">`;
+                } else {
+                    document.getElementById('incomingCallerAvatar').innerHTML = `<span>${data.caller_name[0].toUpperCase()}</span>`;
+                }
+                openModal('incomingCallModal');
+            });
+
+            socket.on('call_accepted', function(data) {
+                console.log('Звонок принят');
+            });
+
+            socket.on('call_rejected', function(data) {
+                alert('Звонок отклонен');
+                endCall();
+            });
+
+            socket.on('call_ended', function(data) {
+                alert('Звонок завершен');
+                endCall();
+            });
+
+            socket.on('webrtc_signal', function(data) {
+                if (!peerConnection && data.signal_type === 'offer') {
+                    startPeerConnection();
+                }
+                if (!peerConnection) return;
+
+                switch (data.signal_type) {
+                    case 'offer':
+                        createAnswer(data.signal_data);
+                        break;
+                    case 'answer':
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal_data));
+                        break;
+                    case 'ice':
+                        peerConnection.addIceCandidate(new RTCIceCandidate(data.signal_data));
+                        break;
+                }
+            });
         }
+
+        // ==================== ПОИСК И ДОБАВЛЕНИЕ КОНТАКТОВ ====================
+        let searchTimeout;
+
+        function searchUsers() {
+            const query = document.getElementById('globalSearch').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+
+            if (query.length < 2) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                fetch(`/api/search_users?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(users => {
+                        if (users.length > 0) {
+                            resultsDiv.innerHTML = users.map(user => `
+                                <div class="chat-item" onclick="addContactAndChat(${user.id}, '${user.username}')">
+                                    <div class="chat-avatar">
+                                        ${user.avatar ? `<img src="/${user.avatar}">` : `<span>${user.username[0].toUpperCase()}</span>`}
+                                    </div>
+                                    <div class="chat-info">
+                                        <div class="chat-name">${escapeHtml(user.username)}</div>
+                                        <div class="chat-message">${escapeHtml(user.phone)}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                            resultsDiv.style.display = 'block';
+                        } else {
+                            resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: #6b7280;">Пользователи не найдены</div>';
+                            resultsDiv.style.display = 'block';
+                        }
+                    });
+            }, 500);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('globalSearch').contains(e.target) && !document.getElementById('searchResults').contains(e.target)) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+
+        function openNewChatModal() {
+            document.getElementById('newChatSearch').value = '';
+            document.getElementById('newChatResults').innerHTML = '';
+            openModal('newChatModal');
+
+            document.getElementById('newChatSearch').oninput = function() {
+                const query = this.value.trim();
+                if (query.length < 2) {
+                    document.getElementById('newChatResults').innerHTML = '';
+                    return;
+                }
+
+                fetch(`/api/search_users?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(users => {
+                        if (users.length > 0) {
+                            document.getElementById('newChatResults').innerHTML = users.map(user => `
+                                <div class="chat-item" onclick="addContactAndChat(${user.id}, '${user.username}'); closeModal('newChatModal');">
+                                    <div class="chat-avatar">
+                                        ${user.avatar ? `<img src="/${user.avatar}">` : `<span>${user.username[0].toUpperCase()}</span>`}
+                                    </div>
+                                    <div class="chat-info">
+                                        <div class="chat-name">${escapeHtml(user.username)}</div>
+                                        <div class="chat-message">${escapeHtml(user.phone)}</div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            document.getElementById('newChatResults').innerHTML = '<div style="padding: 12px; text-align: center; color: #6b7280;">Пользователи не найдены</div>';
+                        }
+                    });
+            };
+        }
+
+        function addContactAndChat(userId, username) {
+            fetch('/api/add_contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact_id: userId })
+            }).then(() => {
+                openChatWithUser(userId, username);
+                document.getElementById('searchResults').style.display = 'none';
+                document.getElementById('globalSearch').value = '';
+            }).catch(() => {
+                openChatWithUser(userId, username);
+            });
+        }
+
+        function addContactFromProfile() {
+            const userId = currentUserId;
+            const username = currentUsername;
+            fetch('/api/add_contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact_id: userId })
+            }).then(() => {
+                alert(`Контакт ${username} добавлен`);
+                closeModal('userProfileModal');
+            });
+        }
+
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
 
         function toggleBurgerMenu() {
             document.getElementById('burgerMenu').classList.toggle('active');
@@ -1497,11 +1780,6 @@
             fetch('/api/update_font_size', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({font_size: parseInt(size)})});
             fetch('/api/update_bubble_radius', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({bubble_radius: parseInt(radius)})});
             closeModal('appearanceModal');
-        }
-
-        function setWallpaper(wallpaper) {
-            document.getElementById('messagesArea').style.background = wallpaper;
-            fetch('/api/update_wallpaper', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({wallpaper: wallpaper})});
         }
 
         function toggleNightMode(event) {
@@ -1663,6 +1941,7 @@
             });
         }
 
+        // ==================== КОНТЕКСТНОЕ МЕНЮ ====================
         let pendingDeleteForAll = false;
 
         function showContextMenu(event, msgId, content, el, isOutgoing) {
@@ -1752,38 +2031,267 @@
             pendingDeleteForAll = false;
         }
 
-        function showNewCallModal() {
-            fetch('/api/get_contacts').then(res => res.json()).then(contacts => {
-                const container = document.getElementById('callContactsList');
-                container.innerHTML = contacts.map(c => `
-                    <div class="chat-item" onclick="selectContactForCall(${c.id}, '${c.username}'); closeModal('newCallModal');">
-                        <div class="chat-avatar"><span>${c.username[0].toUpperCase()}</span></div>
-                        <div class="chat-info"><div class="chat-name">${escapeHtml(c.username)}</div></div>
-                    </div>
-                `).join('');
-                openModal('newCallModal');
+        // ==================== ВЕБ-ЗВОНКИ ====================
+
+        function makeCall(type) {
+            if (!currentUserId || currentUserId == {{ user['id'] }}) {
+                alert('Нельзя позвонить самому себе');
+                return;
+            }
+
+            currentCallType = type;
+
+            const constraints = {
+                audio: true,
+                video: type === 'video'
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    localStream = stream;
+                    startPeerConnection();
+                    createOffer();
+
+                    fetch('/api/start_call', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            receiver_id: currentUserId,
+                            call_type: type
+                        })
+                    }).then(res => res.json()).then(data => {
+                        currentCallId = data.call_id;
+                    });
+
+                    document.getElementById('activeCallName').innerText = currentUsername;
+                    if (type === 'video') {
+                        document.getElementById('localVideo').style.display = 'block';
+                    } else {
+                        document.getElementById('localVideo').style.display = 'none';
+                    }
+                    openModal('activeCallModal');
+                    startCallTimer();
+                })
+                .catch(err => {
+                    console.error('Ошибка доступа к медиа:', err);
+                    alert('Не удалось получить доступ к микрофону/камере. Проверьте разрешения.');
+                });
+        }
+
+        function startPeerConnection() {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    sendSignal('ice', event.candidate);
+                }
+            };
+
+            peerConnection.ontrack = (event) => {
+                const remoteVideo = document.getElementById('remoteVideo');
+                if (remoteVideo.srcObject !== event.streams[0]) {
+                    remoteVideo.srcObject = event.streams[0];
+                }
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                if (peerConnection.connectionState === 'disconnected') {
+                    endCall();
+                }
+            };
+        }
+
+        function createOffer() {
+            peerConnection.createOffer()
+                .then(offer => peerConnection.setLocalDescription(offer))
+                .then(() => {
+                    sendSignal('offer', peerConnection.localDescription);
+                })
+                .catch(err => console.error('Ошибка создания offer:', err));
+        }
+
+        function createAnswer(offer) {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peerConnection.createAnswer())
+                .then(answer => peerConnection.setLocalDescription(answer))
+                .then(() => {
+                    sendSignal('answer', peerConnection.localDescription);
+                })
+                .catch(err => console.error('Ошибка создания answer:', err));
+        }
+
+        function sendSignal(type, data) {
+            if (!currentUserId) return;
+
+            fetch('/api/webrtc_signal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_user_id: currentUserId,
+                    signal_type: type,
+                    signal_data: data
+                })
             });
         }
 
-        function selectContactForCall(userId, username) {
-            selectedCallContact = {id: userId, name: username};
-            openModal('callTypeModal');
+        function acceptCall() {
+            const callData = pendingCall;
+            if (!callData) return;
+
+            currentCallId = callData.call_id;
+            currentUserId = callData.caller_id;
+            currentUsername = callData.caller_name;
+            currentCallType = callData.call_type;
+
+            closeModal('incomingCallModal');
+
+            const constraints = {
+                audio: true,
+                video: callData.call_type === 'video'
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    localStream = stream;
+                    startPeerConnection();
+                    createAnswer(callData.offer);
+
+                    fetch('/api/accept_call', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ call_id: currentCallId })
+                    });
+
+                    document.getElementById('activeCallName').innerText = currentUsername;
+                    if (callData.call_type === 'video') {
+                        document.getElementById('localVideo').style.display = 'block';
+                    } else {
+                        document.getElementById('localVideo').style.display = 'none';
+                    }
+                    openModal('activeCallModal');
+                    startCallTimer();
+                    pendingCall = null;
+                })
+                .catch(err => {
+                    console.error('Ошибка доступа к медиа:', err);
+                    rejectCall();
+                });
         }
 
-        function initiateCall(type) {
-            if (selectedCallContact) {
-                fetch('/api/make_call', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({receiver_id: selectedCallContact.id, call_type: type})})
-                    .then(() => alert(`Звонок ${type === 'audio' ? 'аудио' : 'видео'} инициирован`));
-                closeModal('callTypeModal');
+        function rejectCall() {
+            if (pendingCall) {
+                fetch('/api/reject_call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ call_id: pendingCall.call_id })
+                });
+                pendingCall = null;
+            }
+            closeModal('incomingCallModal');
+        }
+
+        function endCall() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+
+            let duration = 0;
+            if (callStartTime) {
+                duration = Math.floor((Date.now() - callStartTime) / 1000);
+            }
+
+            if (currentCallId) {
+                fetch('/api/end_call_route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        call_id: currentCallId,
+                        duration: duration
+                    })
+                });
+            }
+
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+
+            const localVideo = document.getElementById('localVideo');
+            const remoteVideo = document.getElementById('remoteVideo');
+            if (localVideo.srcObject) {
+                localVideo.srcObject = null;
+            }
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject = null;
+            }
+
+            currentCallId = null;
+            callStartTime = null;
+
+            closeModal('activeCallModal');
+        }
+
+        function startCallTimer() {
+            callStartTime = Date.now();
+            callTimerInterval = setInterval(() => {
+                if (!callStartTime) return;
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('callTimer').innerText =
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function toggleAudio() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    isAudioMuted = !isAudioMuted;
+                    audioTrack.enabled = !isAudioMuted;
+                    const btn = document.getElementById('toggleAudioBtn');
+                    if (isAudioMuted) {
+                        btn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                        btn.style.background = '#ef4444';
+                    } else {
+                        btn.innerHTML = '<i class="fas fa-microphone"></i>';
+                        btn.style.background = '#667eea';
+                    }
+                }
             }
         }
 
-        function makeCall(type) {
-            if (currentUserId && currentUserId != {{ user['id'] }}) {
-                fetch('/api/make_call', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({receiver_id: currentUserId, call_type: type})})
-                    .then(() => alert(`Звонок ${type === 'audio' ? 'аудио' : 'видео'} инициирован`));
+        function toggleVideo() {
+            if (localStream && currentCallType === 'video') {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    isVideoOff = !isVideoOff;
+                    videoTrack.enabled = !isVideoOff;
+                    const btn = document.getElementById('toggleVideoBtn');
+                    if (isVideoOff) {
+                        btn.innerHTML = '<i class="fas fa-video-slash"></i>';
+                        btn.style.background = '#ef4444';
+                        document.getElementById('localVideo').style.display = 'none';
+                    } else {
+                        btn.innerHTML = '<i class="fas fa-video"></i>';
+                        btn.style.background = '#667eea';
+                        document.getElementById('localVideo').style.display = 'block';
+                    }
+                }
             }
         }
+
+        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 
         function downloadFile(url, name) {
             const a = document.createElement('a');
@@ -1795,12 +2303,34 @@
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-        function escapeHtml(t) { if (!t) return ''; return t.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
 
-        document.getElementById('messageInput').addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 100) + 'px'; });
-        document.getElementById('fontSizeRange').addEventListener('input', function() { document.getElementById('fontSizeValue').innerText = this.value; });
-        document.getElementById('bubbleRadiusRange').addEventListener('input', function() { document.getElementById('bubbleRadiusValue').innerText = this.value; });
-        document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('active'); }));
+        function escapeHtml(t) {
+            if (!t) return '';
+            return t.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Инициализация
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+
+        document.getElementById('fontSizeRange').addEventListener('input', function() {
+            document.getElementById('fontSizeValue').innerText = this.value;
+        });
+
+        document.getElementById('bubbleRadiusRange').addEventListener('input', function() {
+            document.getElementById('bubbleRadiusValue').innerText = this.value;
+        });
+
+        document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('active');
+        }));
 
         initSocket();
     </script>
