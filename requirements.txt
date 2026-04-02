@@ -5,3 +5,4 @@ eventlet==0.33.3
 Werkzeug==2.3.7
 gunicorn==21.2.0
 python-multipart==0.0.6
+pillow==10.0.0
