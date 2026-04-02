@@ -3,7 +3,7 @@ import hashlib
 from datetime import datetime
 import os
 
-DB_PATH = 'Swillgram.db'
+DB_PATH = 'swillgram.db'
 
 
 def get_db():

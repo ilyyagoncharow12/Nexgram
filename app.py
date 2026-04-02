@@ -7,6 +7,8 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
+from PIL import Image
+import io
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'swillgram-secret-key'
@@ -22,6 +24,7 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'files'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'photos'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'videos'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'audio'), exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'wallpapers'), exist_ok=True)
 
 DATABASE_PATH = 'swillgram.db'
 
@@ -36,7 +39,6 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,6 +47,7 @@ def init_db():
             password TEXT NOT NULL,
             avatar TEXT,
             bio TEXT,
+            birthday TEXT,
             last_seen DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             privacy_last_seen TEXT DEFAULT 'everyone',
@@ -52,12 +55,13 @@ def init_db():
             privacy_forward TEXT DEFAULT 'everyone',
             privacy_calls TEXT DEFAULT 'everyone',
             privacy_messages TEXT DEFAULT 'everyone',
-            theme TEXT DEFAULT 'dark',
-            font_size INTEGER DEFAULT 14
+            theme TEXT DEFAULT 'light',
+            font_size INTEGER DEFAULT 14,
+            bubble_radius INTEGER DEFAULT 18,
+            wallpaper TEXT DEFAULT ''
         )
     ''')
 
-    # Chats table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS chats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +72,6 @@ def init_db():
         )
     ''')
 
-    # Messages table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,11 +83,13 @@ def init_db():
             file_name TEXT,
             file_size INTEGER,
             is_read BOOLEAN DEFAULT 0,
+            is_deleted BOOLEAN DEFAULT 0,
+            deleted_for_all BOOLEAN DEFAULT 0,
+            edited_at DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # Contacts table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS contacts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +100,6 @@ def init_db():
         )
     ''')
 
-    # Favorites table (облачное хранилище)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS favorites (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,7 +112,6 @@ def init_db():
         )
     ''')
 
-    # Calls table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS calls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,16 +121,6 @@ def init_db():
             status TEXT,
             duration INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Settings table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS settings (
-            user_id INTEGER PRIMARY KEY,
-            wallpaper TEXT,
-            bubble_radius INTEGER DEFAULT 18,
-            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
 
@@ -170,6 +163,15 @@ def get_user_by_id(user_id):
     return user
 
 
+def get_user_by_username(username):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
+
+
 def verify_user(phone, password):
     conn = get_db()
     cursor = conn.cursor()
@@ -181,9 +183,16 @@ def verify_user(phone, password):
     return None
 
 
+def update_last_seen(user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE users SET last_seen = ? WHERE id = ?', (datetime.now(), user_id))
+    conn.commit()
+    conn.close()
+
+
 def get_or_create_chat(user1_id, user2_id):
     if user1_id == user2_id:
-        # Чат с самим собой (Избранное)
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute('SELECT id FROM chats WHERE user1_id = ? AND user2_id = ?', (user1_id, user1_id))
@@ -218,26 +227,22 @@ def get_user_chats(user_id):
 
     cursor.execute('''
         SELECT c.id as chat_id, 
-               CASE WHEN c.user1_id = ? AND c.user2_id != ? THEN c.user2_id 
-                    WHEN c.user2_id = ? AND c.user1_id != ? THEN c.user1_id
-                    ELSE ? END as other_user_id,
-               CASE WHEN c.user1_id = ? AND c.user2_id = ? THEN 'Избранное'
+               CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id,
+               CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
                     ELSE u.username END as username,
                u.avatar,
+               u.phone,
+               u.last_seen,
                m.content as last_message,
                m.file_type as last_file_type,
                m.created_at as last_message_time,
-               (SELECT COUNT(*) FROM messages WHERE chat_id = c.id AND sender_id != ? AND is_read = 0) as unread_count
+               (SELECT COUNT(*) FROM messages WHERE chat_id = c.id AND sender_id != ? AND is_read = 0 AND is_deleted = 0) as unread_count
         FROM chats c
-        LEFT JOIN users u ON (CASE WHEN c.user1_id = ? AND c.user2_id != ? THEN c.user2_id 
-                                   WHEN c.user2_id = ? AND c.user1_id != ? THEN c.user1_id END) = u.id
-        LEFT JOIN messages m ON m.id = (SELECT id FROM messages WHERE chat_id = c.id ORDER BY created_at DESC LIMIT 1)
-        WHERE c.user1_id = ? OR c.user2_id = ?
-        ORDER BY m.created_at DESC
-    ''', (user_id, user_id, user_id, user_id, user_id,
-          user_id, user_id, user_id,
-          user_id, user_id, user_id, user_id,
-          user_id, user_id))
+        LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
+        LEFT JOIN messages m ON m.id = (SELECT id FROM messages WHERE chat_id = c.id AND is_deleted = 0 ORDER BY created_at DESC LIMIT 1)
+        WHERE (c.user1_id = ? OR c.user2_id = ?)
+        ORDER BY CASE WHEN c.user1_id = c.user2_id THEN 0 ELSE 1 END, m.created_at DESC
+    ''', (user_id, user_id, user_id, user_id, user_id))
 
     chats = cursor.fetchall()
     conn.close()
@@ -246,9 +251,11 @@ def get_user_chats(user_id):
     for chat in chats:
         result.append({
             'id': chat['chat_id'],
-            'user_id': chat['other_user_id'] if chat['other_user_id'] else user_id,
+            'user_id': chat['other_user_id'],
             'username': chat['username'] if chat['username'] else 'Избранное',
             'avatar': chat['avatar'],
+            'phone': chat['phone'],
+            'last_seen': chat['last_seen'],
             'last_message': chat['last_message'],
             'last_file_type': chat['last_file_type'],
             'last_message_time': chat['last_message_time'],
@@ -268,7 +275,7 @@ def get_messages(chat_id, user_id):
         SELECT m.*, u.username, u.avatar 
         FROM messages m
         LEFT JOIN users u ON m.sender_id = u.id
-        WHERE m.chat_id = ?
+        WHERE m.chat_id = ? AND m.is_deleted = 0
         ORDER BY m.created_at ASC
     ''', (chat_id,))
 
@@ -299,6 +306,46 @@ def send_message(chat_id, sender_id, content, file_type=None, file_path=None, fi
     message = cursor.fetchone()
     conn.close()
     return message
+
+
+def edit_message(message_id, new_content):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE messages SET content = ?, edited_at = ? WHERE id = ?',
+                   (new_content, datetime.now(), message_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_message(message_id, user_id, delete_for_all=False):
+    conn = get_db()
+    cursor = conn.cursor()
+    if delete_for_all:
+        cursor.execute('UPDATE messages SET is_deleted = 1, deleted_for_all = 1 WHERE id = ?', (message_id,))
+    else:
+        # Для себя - просто помечаем как удаленное для этого пользователя
+        cursor.execute('UPDATE messages SET is_deleted = 1 WHERE id = ?', (message_id,))
+    conn.commit()
+    conn.close()
+
+
+def forward_message(message_id, to_chat_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM messages WHERE id = ?', (message_id,))
+    msg = cursor.fetchone()
+    if msg:
+        cursor.execute('''
+            INSERT INTO messages (chat_id, sender_id, content, file_type, file_path, file_name, file_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (to_chat_id, msg['sender_id'], msg['content'], msg['file_type'], msg['file_path'], msg['file_name'],
+              msg['file_size']))
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        return new_id
+    conn.close()
+    return None
 
 
 def get_contacts(user_id):
@@ -334,7 +381,7 @@ def search_users(query, current_user_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT id, username, phone, avatar, bio
+        SELECT id, username, phone, avatar, bio, last_seen
         FROM users
         WHERE (username LIKE ? OR phone LIKE ?) AND id != ?
         LIMIT 20
@@ -411,18 +458,25 @@ def update_user_settings(user_id, **kwargs):
     conn = get_db()
     cursor = conn.cursor()
     for key, value in kwargs.items():
-        cursor.execute(f'UPDATE users SET {key} = ? WHERE id = ?', (value, user_id))
+        if value is not None:
+            cursor.execute(f'UPDATE users SET {key} = ? WHERE id = ?', (value, user_id))
     conn.commit()
     conn.close()
 
 
-def get_user_settings(user_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-    settings = cursor.fetchone()
-    conn.close()
-    return settings
+def resize_and_crop_image(image_path, size=(500, 500)):
+    """Обрезаем и ресайзим изображение в квадрат"""
+    img = Image.open(image_path)
+    # Обрезаем до квадрата
+    min_size = min(img.size)
+    left = (img.size[0] - min_size) / 2
+    top = (img.size[1] - min_size) / 2
+    right = (img.size[0] + min_size) / 2
+    bottom = (img.size[1] + min_size) / 2
+    img = img.crop((left, top, right, bottom))
+    # Ресайзим
+    img = img.resize(size, Image.Resampling.LANCZOS)
+    img.save(image_path)
 
 
 init_db()
@@ -447,6 +501,7 @@ def login():
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['phone'] = user['phone']
+            update_last_seen(user['id'])
             return redirect(url_for('chat_page'))
         return render_template('login.html', error='Неверный логин или пароль')
     return render_template('login.html')
@@ -472,6 +527,7 @@ def register():
             session['user_id'] = user_id
             session['username'] = username
             session['phone'] = phone
+            update_last_seen(user_id)
             return redirect(url_for('chat_page'))
         return render_template('register.html', error='Пользователь уже существует')
     return render_template('register.html')
@@ -479,6 +535,8 @@ def register():
 
 @app.route('/logout')
 def logout():
+    if 'user_id' in session:
+        update_last_seen(session['user_id'])
     session.clear()
     return redirect(url_for('login'))
 
@@ -493,15 +551,13 @@ def chat_page():
     contacts = get_contacts(session['user_id'])
     call_history = get_call_history(session['user_id'])
     favorites = get_favorites(session['user_id'])
-    settings = get_user_settings(session['user_id'])
 
     return render_template('chat.html',
                            user=user,
                            chats=chats,
                            contacts=contacts,
                            call_history=call_history,
-                           favorites=favorites,
-                           settings=settings)
+                           favorites=favorites)
 
 
 # ==================== API МАРШРУТЫ ====================
@@ -541,6 +597,43 @@ def api_get_contacts():
     return jsonify([dict(c) for c in contacts])
 
 
+@app.route('/api/get_user/<int:user_id>')
+def api_get_user(user_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user = get_user_by_id(user_id)
+    if user:
+        return jsonify({
+            'id': user['id'],
+            'username': user['username'],
+            'phone': user['phone'],
+            'avatar': user['avatar'],
+            'bio': user['bio'] or '',
+            'birthday': user['birthday'] or '',
+            'last_seen': user['last_seen']
+        })
+    return jsonify({'error': 'User not found'}), 404
+
+
+@app.route('/api/get_my_user')
+def api_get_my_user():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user = get_user_by_id(session['user_id'])
+    if user:
+        return jsonify({
+            'id': user['id'],
+            'username': user['username'],
+            'phone': user['phone'],
+            'avatar': user['avatar'],
+            'bio': user['bio'] or '',
+            'birthday': user['birthday'] or ''
+        })
+    return jsonify({'error': 'User not found'}), 404
+
+
 @app.route('/api/get_chat/<int:user_id>')
 def api_get_chat(user_id):
     if 'user_id' not in session:
@@ -558,7 +651,8 @@ def api_get_chat(user_id):
                 other_user['username'] if other_user else ''),
             'phone': other_user['phone'] if other_user else '',
             'avatar': other_user['avatar'] if other_user else None,
-            'bio': other_user['bio'] if other_user else 'Ваше облачное хранилище'
+            'bio': other_user['bio'] if other_user else 'Ваше облачное хранилище',
+            'last_seen': other_user['last_seen'] if other_user else None
         } if user_id == session['user_id'] or other_user else None,
         'messages': [dict(m) for m in messages]
     })
@@ -613,15 +707,66 @@ def api_send_message():
         file_size=file_size
     )
 
-    # Проверяем, что это не чат с самим собой, чтобы не дублировать
-    chat_info = get_db().execute('SELECT user1_id, user2_id FROM chats WHERE id = ?', (chat_id,)).fetchone()
-    if chat_info and chat_info['user1_id'] != chat_info['user2_id']:
+    if message:
         socketio.emit('new_message', {
             'chat_id': chat_id,
             'message': dict(message)
         }, room=f"chat_{chat_id}")
 
-    return jsonify({'success': True, 'message': dict(message)})
+    return jsonify({'success': True})
+
+
+@app.route('/api/edit_message', methods=['POST'])
+def api_edit_message():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    message_id = data.get('message_id')
+    new_content = data.get('content')
+
+    edit_message(message_id, new_content)
+
+    socketio.emit('message_edited', {
+        'message_id': message_id,
+        'new_content': new_content
+    }, broadcast=True)
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/delete_message', methods=['POST'])
+def api_delete_message():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    message_id = data.get('message_id')
+    delete_for_all = data.get('delete_for_all', False)
+
+    delete_message(message_id, session['user_id'], delete_for_all)
+
+    socketio.emit('message_deleted', {
+        'message_id': message_id
+    }, broadcast=True)
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/forward_message', methods=['POST'])
+def api_forward_message():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    message_id = data.get('message_id')
+    to_chat_id = data.get('to_chat_id')
+
+    new_id = forward_message(message_id, to_chat_id)
+
+    if new_id:
+        return jsonify({'success': True, 'message_id': new_id})
+    return jsonify({'success': False}), 400
 
 
 @app.route('/api/mark_read', methods=['POST'])
@@ -714,10 +859,11 @@ def api_add_to_favorites():
 
     fav_id = add_to_favorites(session['user_id'], file_type, file_path, file_name, note)
 
-    # Если есть заметка, отправляем в чат "Избранное"
+    # Отправляем заметку в чат "Избранное"
     if note:
         chat_id = get_or_create_chat(session['user_id'], session['user_id'])
-        send_message(chat_id, session['user_id'], note, None, None, None, None)
+        if chat_id:
+            send_message(chat_id, session['user_id'], note, None, None, None, None)
 
     return jsonify({'success': True, 'favorite_id': fav_id})
 
@@ -738,13 +884,19 @@ def api_update_profile():
 
     username = request.form.get('username')
     bio = request.form.get('bio')
+    birthday = request.form.get('birthday')
 
     updates = {}
     if username:
+        existing = get_user_by_username(username)
+        if existing and existing['id'] != session['user_id']:
+            return jsonify({'success': False, 'error': 'Username already taken'}), 400
         updates['username'] = username
         session['username'] = username
     if bio is not None:
         updates['bio'] = bio
+    if birthday:
+        updates['birthday'] = birthday
 
     if 'avatar' in request.files:
         file = request.files['avatar']
@@ -755,6 +907,8 @@ def api_update_profile():
             os.makedirs(folder, exist_ok=True)
             file_path = os.path.join(folder, unique_name)
             file.save(file_path)
+            # Ресайзим и обрезаем аватарку
+            resize_and_crop_image(file_path)
             updates['avatar'] = f"uploads/avatars/{unique_name}"
 
     if updates:
@@ -783,13 +937,13 @@ def api_get_privacy():
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    settings = get_user_settings(session['user_id'])
+    user = get_user_by_id(session['user_id'])
     return jsonify({
-        'last_seen': settings['privacy_last_seen'],
-        'profile_photo': settings['privacy_photo'],
-        'forward_messages': settings['privacy_forward'],
-        'calls': settings['privacy_calls'],
-        'messages': settings['privacy_messages']
+        'last_seen': user['privacy_last_seen'],
+        'profile_photo': user['privacy_photo'],
+        'forward_messages': user['privacy_forward'],
+        'calls': user['privacy_calls'],
+        'messages': user['privacy_messages']
     })
 
 
@@ -799,7 +953,7 @@ def api_update_theme():
         return jsonify({'error': 'Unauthorized'}), 401
 
     data = request.get_json()
-    update_user_settings(session['user_id'], theme=data.get('theme', 'dark'))
+    update_user_settings(session['user_id'], theme=data.get('theme', 'light'))
     return jsonify({'success': True})
 
 
@@ -811,6 +965,41 @@ def api_update_font_size():
     data = request.get_json()
     update_user_settings(session['user_id'], font_size=data.get('font_size', 14))
     return jsonify({'success': True})
+
+
+@app.route('/api/update_bubble_radius', methods=['POST'])
+def api_update_bubble_radius():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    update_user_settings(session['user_id'], bubble_radius=data.get('bubble_radius', 18))
+    return jsonify({'success': True})
+
+
+@app.route('/api/update_wallpaper', methods=['POST'])
+def api_update_wallpaper():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    wallpaper = data.get('wallpaper', '')
+    update_user_settings(session['user_id'], wallpaper=wallpaper)
+    return jsonify({'success': True})
+
+
+@app.route('/api/get_settings')
+def api_get_settings():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user = get_user_by_id(session['user_id'])
+    return jsonify({
+        'theme': user['theme'],
+        'font_size': user['font_size'],
+        'bubble_radius': user['bubble_radius'],
+        'wallpaper': user['wallpaper']
+    })
 
 
 @app.route('/api/delete_account', methods=['POST'])
@@ -851,6 +1040,13 @@ def uploaded_file(filename):
 def handle_connect():
     if 'user_id' in session:
         join_room(f"user_{session['user_id']}")
+        update_last_seen(session['user_id'])
+
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    if 'user_id' in session:
+        update_last_seen(session['user_id'])
 
 
 @socketio.on('join_chat')
@@ -858,6 +1054,16 @@ def handle_join_chat(data):
     if 'user_id' in session:
         chat_id = data.get('chat_id')
         join_room(f"chat_{chat_id}")
+
+
+@socketio.on('typing')
+def handle_typing(data):
+    if 'user_id' in session:
+        chat_id = data.get('chat_id')
+        emit('user_typing', {
+            'user_id': session['user_id'],
+            'username': session['username']
+        }, room=f"chat_{chat_id}")
 
 
 if __name__ == '__main__':
