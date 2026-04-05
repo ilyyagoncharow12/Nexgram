@@ -12,12 +12,23 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+
 def init_db():
-    """Инициализация базы данных: создание всех таблиц и добавление недостающих колонок"""
+    """Инициализация базы данных"""
     conn = get_db()
     cursor = conn.cursor()
 
-    # ----- Таблица users -----
+    # САМАЯ ПЕРВАЯ ТАБЛИЦА - pinned_chats
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pinned_chats (
+            user_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, chat_id)
+        )
+    ''')
+
+    # Затем все остальные таблицы...
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,6 +42,267 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # ... и так далее, все остальные таблицы ...
+
+    conn.commit()
+    conn.close()
+
+
+
+    #---------------------------------------------------------------------------------------------
+
+
+    #----  ЗАКРЕПЛЕНИЕ ЧАТОВ ----
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pinned_chats (
+            user_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, chat_id)
+        )
+    ''')
+
+    def pin_chat(user_id, chat_id):
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('INSERT OR REPLACE INTO pinned_chats (user_id, chat_id) VALUES (?, ?)', (user_id, chat_id))
+        conn.commit()
+        conn.close()
+
+    def unpin_chat(user_id, chat_id):
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM pinned_chats WHERE user_id = ? AND chat_id = ?', (user_id, chat_id))
+        conn.commit()
+        conn.close()
+
+    def get_pinned_chats(user_id):
+        """Получить список ID закрепленных чатов"""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Проверяем существование таблицы
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='pinned_chats'")
+        if not cursor.fetchone():
+            # Таблицы нет - создаем её
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS pinned_chats (
+                    user_id INTEGER NOT NULL,
+                    chat_id INTEGER NOT NULL,
+                    pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, chat_id)
+                )
+            ''')
+            conn.commit()
+            pinned = []
+        else:
+            cursor.execute('SELECT chat_id FROM pinned_chats WHERE user_id = ? ORDER BY pinned_at DESC', (user_id,))
+            pinned = [row['chat_id'] for row in cursor.fetchall()]
+
+        conn.close()
+        return pinned
+
+    def init_db():
+        """Инициализация базы данных: создание всех таблиц и добавление недостающих колонок"""
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # ----- Таблица users -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                phone TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                avatar TEXT,
+                bio TEXT,
+                birthday TEXT,
+                last_seen DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # ----- Таблица chats -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user1_id INTEGER NOT NULL,
+                user2_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user1_id, user2_id)
+            )
+        ''')
+
+        # ----- Таблица messages -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chat_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
+                content TEXT,
+                file_type TEXT,
+                file_path TEXT,
+                file_name TEXT,
+                file_size INTEGER,
+                is_read BOOLEAN DEFAULT 0,
+                is_deleted BOOLEAN DEFAULT 0,
+                deleted_for_all BOOLEAN DEFAULT 0,
+                edited_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # ----- Таблица contacts -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contacts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                contact_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, contact_id)
+            )
+        ''')
+
+        # ----- Таблица contact_names -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS contact_names (
+                user_id INTEGER NOT NULL,
+                contact_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                PRIMARY KEY (user_id, contact_id)
+            )
+        ''')
+
+        # ----- Таблица favorites -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                file_type TEXT,
+                file_path TEXT,
+                file_name TEXT,
+                note TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # ----- Таблица calls -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS calls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                caller_id INTEGER NOT NULL,
+                receiver_id INTEGER NOT NULL,
+                call_type TEXT,
+                status TEXT,
+                duration INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # ----- Таблица user_sessions -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                device TEXT,
+                ip TEXT,
+                location TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active DATETIME
+            )
+        ''')
+
+        # ----- Таблица stories -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS stories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                file_type TEXT,
+                file_path TEXT,
+                caption TEXT,
+                music TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME
+            )
+        ''')
+
+        # ----- Таблица story_interactions -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS story_interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                story_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                type TEXT,
+                reply_text TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(story_id, user_id, type)
+            )
+        ''')
+
+        # ----- Таблица story_privacy -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS story_privacy (
+                story_id INTEGER PRIMARY KEY,
+                privacy_type TEXT,
+                FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE
+            )
+        ''')
+
+        # ----- Таблица story_allowed_users -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS story_allowed_users (
+                story_id INTEGER,
+                user_id INTEGER,
+                PRIMARY KEY (story_id, user_id)
+            )
+        ''')
+
+        # ----- ДОБАВЬТЕ ЭТУ ТАБЛИЦУ: pinned_chats -----
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS pinned_chats (
+                user_id INTEGER NOT NULL,
+                chat_id INTEGER NOT NULL,
+                pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, chat_id)
+            )
+        ''')
+
+        # ----- Безопасное добавление недостающих колонок в таблицу users -----
+        cursor.execute("PRAGMA table_info(users)")
+        existing_columns = [col[1] for col in cursor.fetchall()]
+
+        columns_to_add = {
+            'privacy_last_seen': "TEXT DEFAULT 'everyone'",
+            'privacy_photo': "TEXT DEFAULT 'everyone'",
+            'privacy_forward': "TEXT DEFAULT 'everyone'",
+            'privacy_calls': "TEXT DEFAULT 'everyone'",
+            'privacy_messages': "TEXT DEFAULT 'everyone'",
+            'theme': "TEXT DEFAULT 'light'",
+            'font_size': "INTEGER DEFAULT 14",
+            'bubble_radius': "INTEGER DEFAULT 18",
+            'wallpaper': "TEXT DEFAULT ''",
+            'email': "TEXT",
+            'google_id': "TEXT",
+            'yandex_id': "TEXT"
+        }
+
+        for col, col_type in columns_to_add.items():
+            if col not in existing_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+                except sqlite3.OperationalError:
+                    pass
+
+        conn.commit()
+        conn.close()
+
+
+
+    #---- ----- ----- ------ ----- - ---- - --  - - -  - - -
+
+
 
     # ----- Таблица chats -----
     cursor.execute('''
@@ -187,6 +459,18 @@ def init_db():
         'yandex_id': "TEXT"
     }
 
+    # Добавьте это в функцию init_db() после создания других таблиц:
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pinned_chats (
+            user_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, chat_id)
+        )
+    ''')
+
+
+
     for col, col_type in columns_to_add.items():
         if col not in existing_columns:
             try:
@@ -327,46 +611,56 @@ def get_or_create_chat(user1_id, user2_id):
     conn.close()
     return chat_id
 
+
 def get_user_chats(user_id):
+    """Получить список чатов пользователя"""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT c.id as chat_id, 
-               CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id,
-               CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
-                    ELSE COALESCE(cn.name, u.username) END as username,
-               u.avatar,
-               u.phone,
-               u.last_seen,
-               m.content as last_message,
-               m.file_type as last_file_type,
-               m.created_at as last_message_time,
-               (SELECT COUNT(*) FROM messages WHERE chat_id = c.id AND sender_id != ? AND is_read = 0 AND is_deleted = 0) as unread_count
-        FROM chats c
-        LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
-        LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
-        LEFT JOIN messages m ON m.id = (SELECT id FROM messages WHERE chat_id = c.id AND is_deleted = 0 ORDER BY created_at DESC LIMIT 1)
-        WHERE (c.user1_id = ? OR c.user2_id = ?)
-        ORDER BY CASE WHEN c.user1_id = c.user2_id THEN 0 ELSE 1 END, m.created_at DESC
-    ''', (user_id, user_id, user_id, user_id, user_id, user_id))
 
-    chats = cursor.fetchall()
-    conn.close()
-    result = []
-    for chat in chats:
-        result.append({
-            'id': chat['chat_id'],
-            'user_id': chat['other_user_id'],
-            'username': chat['username'] if chat['username'] else 'Избранное',
-            'avatar': chat['avatar'],
-            'phone': chat['phone'],
-            'last_seen': chat['last_seen'],
-            'last_message': chat['last_message'],
-            'last_file_type': chat['last_file_type'],
-            'last_message_time': chat['last_message_time'],
-            'unread_count': chat['unread_count']
-        })
-    return result
+    try:
+        # Простой запрос без pinned_chats
+        cursor.execute('''
+            SELECT c.id as chat_id, 
+                   CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id,
+                   CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
+                        ELSE COALESCE(cn.name, u.username) END as username,
+                   u.avatar,
+                   u.phone,
+                   u.last_seen,
+                   m.content as last_message,
+                   m.file_type as last_file_type,
+                   m.created_at as last_message_time,
+                   (SELECT COUNT(*) FROM messages WHERE chat_id = c.id AND sender_id != ? AND is_read = 0 AND is_deleted = 0) as unread_count
+            FROM chats c
+            LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
+            LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
+            LEFT JOIN messages m ON m.id = (SELECT id FROM messages WHERE chat_id = c.id AND is_deleted = 0 ORDER BY created_at DESC LIMIT 1)
+            WHERE (c.user1_id = ? OR c.user2_id = ?)
+            ORDER BY m.created_at DESC
+        ''', (user_id, user_id, user_id, user_id, user_id, user_id))
+
+        chats = cursor.fetchall()
+        result = []
+        for chat in chats:
+            result.append({
+                'id': chat['chat_id'],
+                'user_id': chat['other_user_id'],
+                'username': chat['username'] if chat['username'] else 'Избранное',
+                'avatar': chat['avatar'],
+                'phone': chat['phone'],
+                'last_seen': chat['last_seen'],
+                'last_message': chat['last_message'],
+                'last_file_type': chat['last_file_type'],
+                'last_message_time': chat['last_message_time'],
+                'unread_count': chat['unread_count'],
+                'is_pinned': False
+            })
+        return result
+    except Exception as e:
+        print(f"Error in get_user_chats: {e}")
+        return []
+    finally:
+        conn.close()
 
 # ---------------------- СООБЩЕНИЯ ----------------------
 def send_message(chat_id, sender_id, content, file_type=None, file_path=None, file_name=None, file_size=None):
@@ -510,6 +804,35 @@ def get_favorites(user_id):
     conn.close()
     return favorites
 
+
+# ---------------------- ЗАКРЕПЛЕННЫЕ ЧАТЫ ----------------------
+def pin_chat(user_id, chat_id):
+    """Закрепить чат"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO pinned_chats (user_id, chat_id, pinned_at) VALUES (?, ?, ?)',
+                   (user_id, chat_id, datetime.now()))
+    conn.commit()
+    conn.close()
+
+def unpin_chat(user_id, chat_id):
+    """Открепить чат"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM pinned_chats WHERE user_id = ? AND chat_id = ?', (user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def get_pinned_chats(user_id):
+    """Получить список ID закрепленных чатов"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT chat_id FROM pinned_chats WHERE user_id = ? ORDER BY pinned_at DESC', (user_id,))
+    pinned = [row['chat_id'] for row in cursor.fetchall()]
+    conn.close()
+    return pinned
+
+
 # ---------------------- ЗВОНКИ ----------------------
 def add_call(caller_id, receiver_id, call_type, status):
     conn = get_db()
@@ -631,6 +954,7 @@ def get_stories_for_user(viewer_id):
     conn.close()
     return stories
 
+
 def add_story_interaction(story_id, user_id, interaction_type, reply_text=None):
     conn = get_db()
     cursor = conn.cursor()
@@ -700,3 +1024,93 @@ def get_all_users():
     users = cursor.fetchall()
     conn.close()
     return users
+
+
+
+# ---------------------- ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ИСТОРИЙ ----------------------
+def get_story_viewers(story_id):
+    """Получить список пользователей, просмотревших историю"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.id, u.username, u.avatar
+        FROM story_interactions si
+        JOIN users u ON si.user_id = u.id
+        WHERE si.story_id = ? AND si.type = 'view'
+        ORDER BY si.created_at DESC
+    ''', (story_id,))
+    viewers = cursor.fetchall()
+    conn.close()
+    return viewers
+
+def can_user_interact(story_id, user_id):
+    """Проверяет, может ли пользователь взаимодействовать с историей"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 1 FROM stories s
+        WHERE s.id = ? AND s.expires_at > datetime('now')
+          AND (
+              s.user_id = ?
+              OR EXISTS (
+                  SELECT 1 FROM story_privacy sp
+                  WHERE sp.story_id = s.id AND sp.privacy_type = 'everyone'
+              )
+              OR EXISTS (
+                  SELECT 1 FROM story_privacy sp
+                  WHERE sp.story_id = s.id AND sp.privacy_type = 'contacts'
+                  AND EXISTS (
+                      SELECT 1 FROM contacts 
+                      WHERE (user_id = ? AND contact_id = s.user_id) 
+                      OR (user_id = s.user_id AND contact_id = ?)
+                  )
+              )
+              OR EXISTS (
+                  SELECT 1 FROM story_privacy sp
+                  WHERE sp.story_id = s.id AND sp.privacy_type = 'selected'
+                  AND EXISTS (
+                      SELECT 1 FROM story_allowed_users 
+                      WHERE story_id = s.id AND user_id = ?
+                  )
+              )
+          )
+    ''', (story_id, user_id, user_id, user_id, user_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def get_story_likes_count(story_id):
+    """Получить количество лайков истории"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT COUNT(*) FROM story_interactions WHERE story_id = ? AND type="like"', (story_id,))
+    count = cursor.fetchone()[0]
+    conn.close()
+    return count
+
+# ---------------------- ФУНКЦИИ ДЛЯ ЗАКРЕПЛЕННЫХ ЧАТОВ ----------------------
+def pin_chat(user_id, chat_id):
+    """Закрепить чат"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO pinned_chats (user_id, chat_id, pinned_at) VALUES (?, ?, ?)',
+                   (user_id, chat_id, datetime.now()))
+    conn.commit()
+    conn.close()
+
+def unpin_chat(user_id, chat_id):
+    """Открепить чат"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM pinned_chats WHERE user_id = ? AND chat_id = ?', (user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def get_pinned_chats(user_id):
+    """Получить список ID закрепленных чатов"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT chat_id FROM pinned_chats WHERE user_id = ? ORDER BY pinned_at DESC', (user_id,))
+    pinned = [row['chat_id'] for row in cursor.fetchall()]
+    conn.close()
+    return pinned
