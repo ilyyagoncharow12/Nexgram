@@ -418,16 +418,21 @@ def delete_message(message_id, user_id, delete_for_all=False):
     conn.commit()
     conn.close()
 
-def forward_message(message_id, to_chat_id):
+
+def forward_message(message_id, to_chat_id, from_user_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM messages WHERE id = ?', (message_id,))
     msg = cursor.fetchone()
     if msg:
+        # Добавляем пометку о пересылке
+        forwarded_text = f"📎 Переслано от @{msg['sender_username'] if 'sender_username' in msg.keys() else 'пользователя'}: {msg['content'] if msg['content'] else ''}"
+
         cursor.execute('''
             INSERT INTO messages (chat_id, sender_id, content, file_type, file_path, file_name, file_size)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (to_chat_id, msg['sender_id'], msg['content'], msg['file_type'], msg['file_path'], msg['file_name'], msg['file_size']))
+        ''', (to_chat_id, from_user_id, forwarded_text, msg['file_type'], msg['file_path'], msg['file_name'],
+              msg['file_size']))
         conn.commit()
         new_id = cursor.lastrowid
         conn.close()
@@ -596,41 +601,63 @@ def get_stories_for_user(viewer_id):
     conn = get_db()
     cursor = conn.cursor()
 
-    # Сначала получаем истории
+    # Получаем все активные истории
     cursor.execute('''
         SELECT s.*, u.username, u.avatar
         FROM stories s
         JOIN users u ON s.user_id = u.id
         WHERE s.expires_at > datetime('now')
-          AND (
-              s.user_id = ?
-              OR EXISTS (
-                  SELECT 1 FROM story_privacy sp
-                  WHERE sp.story_id = s.id AND sp.privacy_type = 'everyone'
-              )
-              OR EXISTS (
-                  SELECT 1 FROM story_privacy sp
-                  WHERE sp.story_id = s.id AND sp.privacy_type = 'contacts'
-                  AND EXISTS (
-                      SELECT 1 FROM contacts 
-                      WHERE (user_id = ? AND contact_id = s.user_id) 
-                      OR (user_id = s.user_id AND contact_id = ?)
-                  )
-              )
-              OR EXISTS (
-                  SELECT 1 FROM story_privacy sp
-                  WHERE sp.story_id = s.id AND sp.privacy_type = 'selected'
-                  AND EXISTS (
-                      SELECT 1 FROM story_allowed_users 
-                      WHERE story_id = s.id AND user_id = ?
-                  )
-              )
-          )
         ORDER BY s.created_at DESC
-    ''', (viewer_id, viewer_id, viewer_id, viewer_id))
+    ''')
 
     stories = cursor.fetchall()
     result = []
+
+    for story in stories:
+        story_dict = dict(story)
+
+        # Получаем количество лайков
+        cursor.execute('SELECT COUNT(*) FROM story_interactions WHERE story_id = ? AND type = "like"', (story['id'],))
+        likes_count = cursor.fetchone()[0]
+        story_dict['likes_count'] = likes_count
+
+        # Получаем количество просмотров
+        cursor.execute('SELECT COUNT(*) FROM story_interactions WHERE story_id = ? AND type = "view"', (story['id'],))
+        views_count = cursor.fetchone()[0]
+        story_dict['views_count'] = views_count
+
+        # Получаем список лайкнувших
+        cursor.execute('''
+            SELECT u.id, u.username, u.avatar
+            FROM story_interactions si
+            JOIN users u ON si.user_id = u.id
+            WHERE si.story_id = ? AND si.type = "like"
+            LIMIT 20
+        ''', (story['id'],))
+        likes = cursor.fetchall()
+        story_dict['likes'] = [dict(l) for l in likes]
+
+        # Получаем список просмотревших
+        cursor.execute('''
+            SELECT u.id, u.username, u.avatar
+            FROM story_interactions si
+            JOIN users u ON si.user_id = u.id
+            WHERE si.story_id = ? AND si.type = "view"
+            LIMIT 20
+        ''', (story['id'],))
+        viewers = cursor.fetchall()
+        story_dict['viewers'] = [dict(v) for v in viewers]
+
+        # Проверяем, поставил ли текущий пользователь лайк
+        cursor.execute('SELECT 1 FROM story_interactions WHERE story_id = ? AND user_id = ? AND type = "like"',
+                       (story['id'], viewer_id))
+        has_liked = cursor.fetchone() is not None
+        story_dict['has_liked'] = has_liked
+
+        result.append(story_dict)
+
+    conn.close()
+    return result
 
     # Для каждой истории отдельно получаем лайки и просмотры
     for story in stories:
@@ -661,6 +688,28 @@ def get_stories_for_user(viewer_id):
 
     conn.close()
     return result
+
+
+def forward_message_with_author(message_id, to_chat_id, from_user_id, original_author):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM messages WHERE id = ?', (message_id,))
+    msg = cursor.fetchone()
+    if msg:
+        forwarded_text = f"📎 Переслано от @{original_author}: {msg['content'] if msg['content'] else ''}"
+
+        cursor.execute('''
+            INSERT INTO messages (chat_id, sender_id, content, file_type, file_path, file_name, file_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (to_chat_id, from_user_id, forwarded_text, msg['file_type'], msg['file_path'], msg['file_name'],
+              msg['file_size']))
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        return new_id
+    conn.close()
+    return None
+
 
 def add_story_interaction(story_id, user_id, interaction_type, reply_text=None):
     conn = get_db()
@@ -1003,14 +1052,34 @@ def api_delete_message():
     return jsonify({'success': True})
 
 
-
 @app.route('/api/forward_message', methods=['POST'])
 def api_forward_message():
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
     data = request.get_json()
-    new_id = forward_message(data.get('message_id'), data.get('to_chat_id'))
-    return jsonify({'success': True, 'message_id': new_id}) if new_id else jsonify({'success': False}), 400
+    message_id = data.get('message_id')
+    to_chat_id = data.get('to_chat_id')
+
+    # Получаем информацию об авторе оригинального сообщения
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT m.*, u.username as sender_username 
+        FROM messages m 
+        JOIN users u ON m.sender_id = u.id 
+        WHERE m.id = ?
+    ''', (message_id,))
+    original_msg = cursor.fetchone()
+    conn.close()
+
+    if not original_msg:
+        return jsonify({'success': False, 'error': 'Message not found'}), 404
+
+    new_id = forward_message_with_author(message_id, to_chat_id, session['user_id'], original_msg['sender_username'])
+
+    if new_id:
+        return jsonify({'success': True, 'message_id': new_id})
+    return jsonify({'success': False}), 400
 
 @app.route('/api/mark_read', methods=['POST'])
 def api_mark_read():
@@ -1309,7 +1378,7 @@ def api_get_stories():
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
     stories = get_stories_for_user(session['user_id'])
-    return jsonify([dict(s) for s in stories])
+    return jsonify(stories)
 
 @app.route('/api/story_view', methods=['POST'])
 def api_story_view():

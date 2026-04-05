@@ -1180,6 +1180,37 @@
         </div>
     </div>
 
+
+
+    <div class="modal" id="storyViewerModal">
+    <div class="modal-content" style="max-width:400px; background:black; color:white;">
+        <div class="modal-header" style="border-bottom:none;">
+            <button class="modal-close" onclick="closeStoryViewer()" style="color:white;">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align:center;">
+            <video id="storyVideo" controls style="max-width:100%; display:none; border-radius:12px;"></video>
+            <img id="storyImage" style="max-width:100%; display:none; border-radius:12px;">
+            <div id="storyCaptionDisplay" style="margin:10px; font-size:18px;"></div>
+            <div id="storyViewsCount" style="font-size:12px; opacity:0.7; margin:5px;"></div>
+
+            <div style="display:flex; justify-content:center; gap:30px; margin-top:20px;">
+                <button id="storyLikeBtn" onclick="likeCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">🤍 <span id="storyLikeCount">0</span></button>
+                <button onclick="replyToCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">💬</button>
+            </div>
+
+            <div style="margin-top:20px;">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <button onclick="showStoryTab('likes')" id="storyLikesTab" style="flex:1; padding:8px; background:#3b82f6; border:none; border-radius:8px; color:white;">❤️ Лайки</button>
+                    <button onclick="showStoryTab('views')" id="storyViewsTab" style="flex:1; padding:8px; background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white;">👁️ Просмотры</button>
+                </div>
+                <div id="storyLikesList" style="max-height:200px; overflow-y:auto; text-align:left; background:rgba(255,255,255,0.1); border-radius:12px; padding:10px;"></div>
+                <div id="storyViewersList" style="max-height:200px; overflow-y:auto; text-align:left; background:rgba(255,255,255,0.1); border-radius:12px; padding:10px; display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
     <!-- Context Menu -->
     <div class="context-menu" id="contextMenu">
         <div class="context-menu-item" onclick="contextMenuReply()">
@@ -1349,20 +1380,22 @@
         </div>
     </div>
 
-    <div class="modal" id="storyViewerModal">
-        <div class="modal-content" style="max-width:400px; background:black; color:white;">
-            <div class="modal-header" style="border-bottom:none;"><button class="modal-close" onclick="closeStoryViewer()" style="color:white;">&times;</button></div>
-            <div class="modal-body" style="text-align:center;">
-                <video id="storyVideo" controls style="max-width:100%; display:none; border-radius:12px;"></video>
-                <img id="storyImage" style="max-width:100%; display:none; border-radius:12px;">
-                <div id="storyCaptionDisplay" style="margin:10px; font-size:18px;"></div>
-                <div style="display:flex; justify-content:center; gap:30px; margin-top:20px;">
-                    <button onclick="likeCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">❤️ <span id="storyLikeCount">0</span></button>
-                    <button onclick="replyToCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">💬</button>
-                </div>
-            </div>
-        </div>
+<div style="display:flex; justify-content:center; gap:30px; margin-top:20px;">
+
+    <button id="storyLikeBtn" onclick="likeCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">🤍 <span id="storyLikeCount">0</span></button>
+    <button onclick="replyToCurrentStory()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">💬</button>
+
+    <div style="margin-top:20px;">
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+        <button onclick="showStoryTab('likes')" id="storyLikesTab" style="flex:1; padding:8px; background:#3b82f6; border:none; border-radius:8px; color:white;">❤️ Лайки</button>
+        <button onclick="showStoryTab('views')" id="storyViewsTab" style="flex:1; padding:8px; background:rgba(255,255,255,0.2); border:none; border-radius:8px; color:white;">👁️ Просмотры</button>
     </div>
+    <div id="storyLikesList" style="max-height:200px; overflow-y:auto; text-align:left; background:rgba(255,255,255,0.1); border-radius:12px; padding:10px;"></div>
+    <div id="storyViewersList" style="max-height:200px; overflow-y:auto; text-align:left; background:rgba(255,255,255,0.1); border-radius:12px; padding:10px; display:none;"></div>
+</div>
+
+</div>
+
 
     <div class="modal" id="newChatModal">
         <div class="modal-content">
@@ -1495,7 +1528,14 @@
     <input type="file" id="avatarInput" style="display:none;" accept="image/*">
     <input type="file" id="storyFileInput" style="display:none;" accept="image/*,video/*">
 
+
     <script>
+
+        let currentStoryLiked = false;
+
+
+
+
         // WebRTC configuration
         const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -1665,7 +1705,20 @@
         function contextMenuEdit() { hideContextMenu(); document.getElementById('editMessageContent').value = currentContextMessageContent; openModal('editMessageModal'); }
         function saveEditedMessage() { const newContent = document.getElementById('editMessageContent').value; if (newContent && newContent !== currentContextMessageContent) { fetch('/api/edit_message', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message_id: currentContextMessageId, content: newContent})}); } closeModal('editMessageModal'); }
         function contextMenuForward() { hideContextMenu(); fetch('/chat').then(res => res.text()).then(html => { const parser = new DOMParser(); const doc = parser.parseFromString(html, 'text/html'); const chats = doc.querySelectorAll('.chat-item'); const container = document.getElementById('forwardChatsList'); container.innerHTML = Array.from(chats).map(c => { const name = c.querySelector('.chat-name').innerText; const cid = c.dataset.chatId; return `<div class="chat-item" onclick="forwardMessageToChat(${cid}); closeModal('forwardModal');"><div class="chat-avatar"><span>${name[0].toUpperCase()}</span></div><div class="chat-info"><div class="chat-name">${escapeHtml(name)}</div></div></div>`; }).join(''); openModal('forwardModal'); }); }
-        function forwardMessageToChat(toChatId) { fetch('/api/forward_message', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message_id: currentContextMessageId, to_chat_id: toChatId})}); alert('Переслано'); }
+        function forwardMessageToChat(toChatId) {
+    fetch('/api/forward_message', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            message_id: currentContextMessageId,
+            to_chat_id: toChatId
+        })
+    }).then(() => {
+        alert('Сообщение переслано');
+        closeModal('forwardModal');
+    });
+}
+
         function contextMenuDelete() { hideContextMenu(); openModal('deleteMessageModal'); }
         function confirmDeleteMessage(forAll) { fetch('/api/delete_message', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message_id: currentContextMessageId, delete_for_all: forAll})}); closeModal('deleteMessageModal'); }
 
@@ -1760,8 +1813,29 @@
 }
 
 
-        function openStory(userId) { fetch(`/api/get_stories`).then(res => res.json()).then(stories => { const story = stories.find(s => s.user_id == userId); if (story) { currentStoryId = story.id; const isVideo = story.file_type === 'video'; const imgEl = document.getElementById('storyImage'); const videoEl = document.getElementById('storyVideo'); if (isVideo) { videoEl.style.display = 'block'; imgEl.style.display = 'none'; videoEl.src = '/' + story.file_path; videoEl.play(); } else { videoEl.style.display = 'none'; imgEl.style.display = 'block'; imgEl.src = '/' + story.file_path; } document.getElementById('storyCaptionDisplay').innerText = story.caption || ''; document.getElementById('storyLikeCount').innerText = story.likes_count || 0; openModal('storyViewerModal'); fetch('/api/story_view', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({story_id: currentStoryId}) }); } }); }
-        function likeCurrentStory() { fetch('/api/story_like', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({story_id: currentStoryId}) }).then(() => { let count = parseInt(document.getElementById('storyLikeCount').innerText); document.getElementById('storyLikeCount').innerText = count + 1; }); }
+
+function showStoryTab(tab) {
+    const likesList = document.getElementById('storyLikesList');
+    const viewersList = document.getElementById('storyViewersList');
+    const likesTab = document.getElementById('storyLikesTab');
+    const viewsTab = document.getElementById('storyViewsTab');
+
+    if (!likesList || !viewersList) return;
+
+    if (tab === 'likes') {
+        likesList.style.display = 'block';
+        viewersList.style.display = 'none';
+        if (likesTab) likesTab.style.background = '#3b82f6';
+        if (viewsTab) viewsTab.style.background = 'rgba(255,255,255,0.2)';
+    } else {
+        likesList.style.display = 'none';
+        viewersList.style.display = 'block';
+        if (likesTab) likesTab.style.background = 'rgba(255,255,255,0.2)';
+        if (viewsTab) viewsTab.style.background = '#3b82f6';
+    }
+}
+
+
         function replyToCurrentStory() { let reply = prompt('Ваш ответ:'); if (reply) { fetch('/api/story_reply', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({story_id: currentStoryId, reply_text: reply}) }).then(() => alert('Ответ отправлен')); } }
         function closeStoryViewer() { closeModal('storyViewerModal'); const video = document.getElementById('storyVideo'); if (video) { video.pause(); video.src = ''; } }
         document.getElementById('storyFileInput').onchange = function(e) { if (e.target.files[0]) openStoryEditor(e.target.files[0]); };
@@ -1791,6 +1865,90 @@
         initSocket();
         loadStories();
         setInterval(loadStories, 30000);
+
+        function loadStories() {
+    fetch('/api/get_stories')
+        .then(res => res.json())
+        .then(stories => {
+            console.log('Загружено историй:', stories.length);
+            const container = document.getElementById('storiesContainer');
+            if (!container) return;
+
+            if (!stories || stories.length === 0) {
+                container.innerHTML = '<div class="story-circle" onclick="document.getElementById(\'storyFileInput\').click()"><div class="story-avatar">➕</div><span>Моя история</span></div>';
+                return;
+            }
+
+            const myId = {{ user['id'] }};
+            const myStory = stories.find(s => s.user_id == myId);
+            const otherStories = stories.filter(s => s.user_id != myId);
+
+            let html = '';
+
+            // Моя история
+            if (myStory) {
+                html += `<div class="story-circle" onclick="document.getElementById('storyFileInput').click()">
+                            <div class="story-avatar" style="border-color:#00bcd4;">
+                                ${myStory.avatar ? `<img src="/${myStory.avatar}">` : `<span>${myStory.username ? myStory.username[0] : '?'}</span>`}
+                            </div>
+                            <span>Моя история</span>
+                         </div>`;
+            } else {
+                html += `<div class="story-circle" onclick="document.getElementById('storyFileInput').click()">
+                            <div class="story-avatar">➕</div>
+                            <span>Моя история</span>
+                         </div>`;
+            }
+
+            // Истории других пользователей
+            otherStories.forEach(s => {
+                html += `<div class="story-circle" onclick="openStory(${s.user_id})">
+                            <div class="story-avatar">
+                                ${s.avatar ? `<img src="/${s.avatar}">` : `<span>${s.username ? s.username[0] : '?'}</span>`}
+                            </div>
+                            <span>${escapeHtml(s.username || 'Пользователь')}</span>
+                         </div>`;
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки историй:', err);
+        });
+}
+
+
+        function showStoryTab(tab) {
+    const likesList = document.getElementById('storyLikesList');
+    const viewersList = document.getElementById('storyViewersList');
+    const likesTab = document.getElementById('storyLikesTab');
+    const viewsTab = document.getElementById('storyViewsTab');
+
+    if (tab === 'likes') {
+        likesList.style.display = 'block';
+        viewersList.style.display = 'none';
+        likesTab.style.background = '#3b82f6';
+        viewsTab.style.background = 'rgba(255,255,255,0.2)';
+    } else {
+        likesList.style.display = 'none';
+        viewersList.style.display = 'block';
+        likesTab.style.background = 'rgba(255,255,255,0.2)';
+        viewsTab.style.background = '#3b82f6';
+    }
+}
+
+
+function closeStoryViewer() {
+    closeModal('storyViewerModal');
+    const video = document.getElementById('storyVideo');
+    if (video) {
+        video.pause();
+        video.src = '';
+    }
+}
+
+
+
     </script>
 </body>
    </html>

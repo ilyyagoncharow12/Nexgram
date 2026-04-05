@@ -600,36 +600,68 @@ def create_story(user_id, file_type, file_path, caption, music_path, privacy, se
     conn.close()
     return story_id
 
+
 def get_stories_for_user(viewer_id):
-    """Возвращает истории, которые имеет право видеть viewer_id"""
     conn = get_db()
     cursor = conn.cursor()
+
+    # Получаем все активные истории
     cursor.execute('''
-        SELECT s.*, u.username, u.avatar,
-               (SELECT COUNT(*) FROM story_interactions WHERE story_id = s.id AND type='like') as likes_count
+        SELECT s.*, u.username, u.avatar
         FROM stories s
         JOIN users u ON s.user_id = u.id
         WHERE s.expires_at > datetime('now')
-          AND (
-              s.user_id = ?
-              OR EXISTS (
-                  SELECT 1 FROM story_privacy sp
-                  WHERE sp.story_id = s.id AND (
-                      sp.privacy_type = 'everyone'
-                      OR (sp.privacy_type = 'contacts' AND EXISTS (
-                          SELECT 1 FROM contacts WHERE (user_id = ? AND contact_id = s.user_id) OR (user_id = s.user_id AND contact_id = ?)
-                      ))
-                      OR (sp.privacy_type = 'selected' AND EXISTS (
-                          SELECT 1 FROM story_allowed_users WHERE story_id = s.id AND user_id = ?
-                      ))
-                  )
-              )
-          )
         ORDER BY s.created_at DESC
-    ''', (viewer_id, viewer_id, viewer_id, viewer_id))
+    ''')
+
     stories = cursor.fetchall()
+    result = []
+
+    for story in stories:
+        story_dict = dict(story)
+
+        # Получаем количество лайков
+        cursor.execute('SELECT COUNT(*) FROM story_interactions WHERE story_id = ? AND type = "like"', (story['id'],))
+        likes_count = cursor.fetchone()[0]
+        story_dict['likes_count'] = likes_count
+
+        # Получаем количество просмотров
+        cursor.execute('SELECT COUNT(*) FROM story_interactions WHERE story_id = ? AND type = "view"', (story['id'],))
+        views_count = cursor.fetchone()[0]
+        story_dict['views_count'] = views_count
+
+        # Получаем список лайкнувших
+        cursor.execute('''
+            SELECT u.id, u.username, u.avatar
+            FROM story_interactions si
+            JOIN users u ON si.user_id = u.id
+            WHERE si.story_id = ? AND si.type = "like"
+            LIMIT 20
+        ''', (story['id'],))
+        likes = cursor.fetchall()
+        story_dict['likes'] = [dict(l) for l in likes]
+
+        # Получаем список просмотревших
+        cursor.execute('''
+            SELECT u.id, u.username, u.avatar
+            FROM story_interactions si
+            JOIN users u ON si.user_id = u.id
+            WHERE si.story_id = ? AND si.type = "view"
+            LIMIT 20
+        ''', (story['id'],))
+        viewers = cursor.fetchall()
+        story_dict['viewers'] = [dict(v) for v in viewers]
+
+        # Проверяем, поставил ли текущий пользователь лайк
+        cursor.execute('SELECT 1 FROM story_interactions WHERE story_id = ? AND user_id = ? AND type = "like"',
+                       (story['id'], viewer_id))
+        has_liked = cursor.fetchone() is not None
+        story_dict['has_liked'] = has_liked
+
+        result.append(story_dict)
+
     conn.close()
-    return stories
+    return result
 
 def add_story_interaction(story_id, user_id, interaction_type, reply_text=None):
     conn = get_db()
