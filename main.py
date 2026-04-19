@@ -529,55 +529,72 @@ def api_send_message():
         content = request.form.get('content', '')
         reply_to_id = request.form.get('reply_to_id')
 
-        file_type = None
-        file_path = None
-        file_name = None
-        file_size = None
+        messages = []
+        files = request.files.getlist('files')
 
-        if 'file' in request.files:
-            file = request.files['file']
-            if file and file.filename:
-                file_name = secure_filename(file.filename)
-                ext = file_name.rsplit('.', 1)[1].lower() if '.' in file_name else ''
+        if files:
+            for file in files:
+                if file and file.filename:
+                    file_type = None
+                    file_path = None
+                    file_name = secure_filename(file.filename)
+                    ext = file_name.rsplit('.', 1)[1].lower() if '.' in file_name else ''
 
-                if ext in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
-                    file_type = 'photo'
-                    folder = 'photos'
-                elif ext in ['mp4', 'webm', 'avi', 'mov']:
-                    file_type = 'video'
-                    folder = 'videos'
-                elif ext in ['mp3', 'wav', 'ogg', 'm4a']:
-                    file_type = 'audio'
-                    folder = 'audio'
-                else:
-                    file_type = 'document'
-                    folder = 'files'
+                    if ext in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+                        file_type = 'photo'
+                        folder = 'photos'
+                    elif ext in ['mp4', 'webm', 'avi', 'mov']:
+                        file_type = 'video'
+                        folder = 'videos'
+                    elif ext in ['mp3', 'wav', 'ogg', 'm4a']:
+                        file_type = 'audio'
+                        folder = 'audio'
+                    else:
+                        file_type = 'document'
+                        folder = 'files'
 
-                os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], folder), exist_ok=True)
-                unique_name = f"{uuid.uuid4().hex}.{ext}"
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], folder, unique_name)
-                file.save(file_path)
-                file_size = os.path.getsize(file_path)
-                file_path = f"uploads/{folder}/{unique_name}"
+                    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], folder), exist_ok=True)
+                    unique_name = f"{uuid.uuid4().hex}.{ext}"
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], folder, unique_name)
+                    file.save(file_path)
+                    file_size = os.path.getsize(file_path)
+                    file_path = f"uploads/{folder}/{unique_name}"
 
-        message = send_message(
-            chat_id=chat_id,
-            group_id=group_id,
-            channel_id=channel_id,
-            sender_id=session['user_id'],
-            content=content,
-            file_type=file_type,
-            file_path=file_path,
-            file_name=file_name,
-            file_size=file_size,
-            reply_to_id=reply_to_id
-        )
+                    message = send_message(
+                        chat_id=chat_id,
+                        group_id=group_id,
+                        channel_id=channel_id,
+                        sender_id=session['user_id'],
+                        content=content if len(files) == 1 else f"[Файл] {file_name}",
+                        file_type=file_type,
+                        file_path=file_path,
+                        file_name=file_name,
+                        file_size=file_size,
+                        reply_to_id=reply_to_id
+                    )
 
-        if message:
+                    if message:
+                        messages.append(dict(message))
+        else:
+            # Только текст
+            message = send_message(
+                chat_id=chat_id,
+                group_id=group_id,
+                channel_id=channel_id,
+                sender_id=session['user_id'],
+                content=content,
+                reply_to_id=reply_to_id
+            )
+            if message:
+                messages.append(dict(message))
+
+        # Отправляем через сокет
+        if messages:
             room = f"chat_{chat_id}" if chat_id else f"group_{group_id}" if group_id else f"channel_{channel_id}"
-            socketio.emit('new_message', {'room': room, 'message': dict(message)}, room=room)
+            for msg in messages:
+                socketio.emit('new_message', {'room': room, 'message': msg}, room=room)
 
-        return jsonify({'success': True, 'message': dict(message) if message else None})
+        return jsonify({'success': True, 'messages': messages})
     except Exception as e:
         print(f"Error sending message: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
