@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* ВСЕ СТИЛИ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ */
         * {
             margin: 0;
             padding: 0;
@@ -59,7 +60,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
             background: var(--bg-secondary);
@@ -110,7 +110,6 @@
             color: white;
         }
 
-        /* Tabs */
         .chat-tabs {
             display: flex;
             padding: 8px 16px;
@@ -147,7 +146,6 @@
             color: white;
         }
 
-        /* Stories */
         .stories-container {
             display: flex;
             overflow-x: auto;
@@ -239,7 +237,6 @@
             color: white;
         }
 
-        /* Search */
         .search-bar {
             padding: 12px 16px;
             position: relative;
@@ -346,7 +343,6 @@
             text-transform: uppercase;
         }
 
-        /* Chats List */
         .chats-list {
             flex: 1;
             overflow-y: auto;
@@ -483,7 +479,6 @@
             text-align: center;
         }
 
-        /* Chat Area */
         .chat-area {
             flex: 1;
             display: flex;
@@ -581,7 +576,6 @@
             color: var(--primary-color);
         }
 
-        /* Messages */
         .messages-area {
             flex: 1;
             overflow-y: auto;
@@ -797,7 +791,6 @@
             transform: scale(1.2);
         }
 
-        /* Input Area */
         .message-input-area {
             padding: 16px 20px;
             background: var(--bg-secondary);
@@ -924,7 +917,6 @@
             opacity: 0.5;
         }
 
-        /* Context Menu */
         .context-menu {
             position: fixed;
             background: var(--bg-primary);
@@ -972,7 +964,6 @@
             margin: 6px 0;
         }
 
-        /* Burger Menu */
         .burger-overlay {
             position: fixed;
             top: 0;
@@ -1111,7 +1102,6 @@
             border-top: 1px solid var(--border-color);
         }
 
-        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -1323,7 +1313,6 @@
             object-fit: cover;
         }
 
-        /* Story Viewer Modal */
         .story-viewer-modal {
             position: fixed;
             top: 0;
@@ -1541,7 +1530,6 @@
             right: 0;
         }
 
-        /* Group/Channel Members List */
         .members-list {
             max-height: 300px;
             overflow-y: auto;
@@ -1613,7 +1601,6 @@
             background: var(--bg-hover);
         }
 
-        /* Permissions Panel */
         .permissions-panel {
             background: var(--bg-tertiary);
             border-radius: 12px;
@@ -1644,7 +1631,6 @@
             cursor: pointer;
         }
 
-        /* Video Call Modal */
         .video-call-modal .modal-content {
             max-width: 900px;
             background: #1a1a2e;
@@ -1724,7 +1710,6 @@
             padding: 10px;
         }
 
-        /* Animations */
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -1746,7 +1731,6 @@
             animation: heartBeat 0.3s ease;
         }
 
-        /* Mobile */
         @media (max-width: 768px) {
             .sidebar {
                 position: absolute;
@@ -1779,7 +1763,6 @@
 </head>
 <body>
 <div class="app">
-    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <button class="hamburger-btn" onclick="toggleBurgerMenu()">
@@ -1821,7 +1804,6 @@
         <div class="chats-list" id="chatsList"></div>
     </div>
 
-    <!-- Chat Area -->
     <div class="chat-area" id="chatArea">
         <div class="chat-header-area">
             <button class="back-btn" onclick="toggleSidebar()">
@@ -1883,7 +1865,6 @@
     </div>
 </div>
 
-<!-- Context Menu -->
 <div class="context-menu" id="contextMenu">
     <div class="context-menu-item" onclick="contextAction('reply')">
         <i class="fas fa-reply"></i>
@@ -1908,7 +1889,6 @@
     </div>
 </div>
 
-<!-- Burger Menu -->
 <div class="burger-overlay" id="burgerOverlay" onclick="closeBurgerMenu()"></div>
 <div class="burger-menu" id="burgerMenu">
     <div class="burger-header" onclick="openMyProfile()">
@@ -1979,7 +1959,6 @@
     </div>
 </div>
 
-<!-- Story Viewer Modal -->
 <div class="story-viewer-modal" id="storyViewerModal">
     <div class="story-viewer-content">
         <div class="story-progress-bar" id="storyProgressBar"></div>
@@ -2018,7 +1997,6 @@
     </div>
 </div>
 
-<!-- Hidden Inputs -->
 <input type="file" id="fileInput" style="display:none;" multiple>
 <input type="file" id="storyFileInput" style="display:none;" accept="image/*,video/*">
 
@@ -2046,7 +2024,6 @@
     let storyTimerInterval = null;
     let typingTimeout = null;
 
-    // Доступные реакции для сообщений
     const AVAILABLE_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🎉', '🔥', '👏', '💯', '🙏', '✨', '💔', '🤔', '👀'];
 
     // ===== УТИЛИТЫ =====
@@ -2168,7 +2145,7 @@
         socket.on('new_message', (data) => {
             if (currentChat && data.message) {
                 const isCurrentChat =
-                    (currentChatType === 'personal' && data.message.chat_id == currentChat.id) ||
+                    (currentChatType === 'personal' && data.message.chat_id == currentChat.chat_id) ||
                     (currentChatType === 'group' && data.message.group_id == currentChat.id) ||
                     (currentChatType === 'channel' && data.message.channel_id == currentChat.id);
 
@@ -2353,14 +2330,17 @@
         container.innerHTML = data.map(c => {
             const chatId = c.chat_id || c.id;
             const chatType = c.chat_type || 'personal';
+            const openId = chatType === 'personal' ? c.other_user_id : chatId;
             const avatarClass = chatType === 'group' ? 'group' : (chatType === 'channel' ? 'channel' : '');
-            const isActive = currentChat && currentChat.id == chatId && currentChatType === chatType;
+            const isActive = currentChat &&
+                ((chatType === 'personal' && currentChat.other_user_id == openId) ||
+                 (chatType !== 'personal' && currentChat.id == chatId));
 
             return `
                 <div class="chat-item ${c.is_pinned ? 'pinned' : ''} ${isActive ? 'active' : ''}"
-                     data-chat-id="${chatId}"
+                     data-chat-id="${openId}"
                      data-chat-type="${chatType}"
-                     onclick="openChat(${chatId}, '${chatType}')">
+                     onclick="openChat(${openId}, '${chatType}')">
                     <div class="pin-button" onclick="event.stopPropagation();togglePin(this, ${chatId})">
                         <i class="fas fa-thumbtack" style="color: ${c.is_pinned ? '#10b981' : 'var(--text-muted)'};"></i>
                     </div>
@@ -2397,19 +2377,21 @@
     }
 
     function openChat(id, type) {
+        const numericId = parseInt(id);
+
         if (type === 'personal') {
-            fetch(`/api/is_user_blocked/${id}`)
+            fetch(`/api/is_user_blocked/${numericId}`)
                 .then(r => r.json())
                 .then(data => {
                     if (data.is_blocked) {
                         alert('Вы заблокировали этого пользователя. Разблокируйте его чтобы продолжить общение.');
                         return;
                     }
-                    continueOpenChat(id, type);
+                    continueOpenChat(numericId, type);
                 })
-                .catch(() => continueOpenChat(id, type));
+                .catch(() => continueOpenChat(numericId, type));
         } else {
-            continueOpenChat(id, type);
+            continueOpenChat(numericId, type);
         }
     }
 
@@ -2424,6 +2406,7 @@
             .then(r => r.json())
             .then(d => {
                 if (type === 'personal' && d.other_user) {
+                    currentChat.chat_id = d.chat_id;
                     currentChat.other_user_id = d.other_user.id;
                     currentChat.name = d.other_user.display_name || d.other_user.username;
                     currentChat.last_seen = d.other_user.last_seen;
@@ -2458,6 +2441,7 @@
 
                 displayMessages(d.messages || []);
                 document.getElementById('messageInputArea').style.display = 'flex';
+                document.getElementById('messageInput').focus();
 
                 if (type === 'personal') socket.emit('join_chat', { chat_id: d.chat_id });
                 else if (type === 'group') socket.emit('join_group', { group_id: id });
@@ -2501,7 +2485,6 @@
         c.innerHTML = html;
         c.scrollTop = c.scrollHeight;
 
-        // Загружаем реакции для сообщений
         msgs.forEach(m => {
             if (m.id) {
                 fetch(`/api/get_reactions/${m.id}`)
@@ -2648,11 +2631,25 @@
         if (!content || !currentChat) return;
 
         const fd = new FormData();
-        if (currentChatType === 'personal') fd.append('chat_id', currentChat.id);
-        else if (currentChatType === 'group') fd.append('group_id', currentChat.id);
-        else if (currentChatType === 'channel') fd.append('channel_id', currentChat.id);
+
+        if (currentChatType === 'personal') {
+            if (currentChat.chat_id) {
+                fd.append('chat_id', currentChat.chat_id);
+            } else {
+                console.error('No chat_id available');
+                return;
+            }
+        } else if (currentChatType === 'group') {
+            fd.append('group_id', currentChat.id);
+        } else if (currentChatType === 'channel') {
+            fd.append('channel_id', currentChat.id);
+        }
+
         fd.append('content', content);
-        if (currentReplyMessage) fd.append('reply_to_id', currentReplyMessage.id);
+
+        if (currentReplyMessage) {
+            fd.append('reply_to_id', currentReplyMessage.id);
+        }
 
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length > 0) {
@@ -2689,7 +2686,7 @@
 
             if (currentChat && currentChatType === 'personal') {
                 if (typingTimeout) clearTimeout(typingTimeout);
-                socket.emit('typing', { room: `chat_${currentChat.id}` });
+                socket.emit('typing', { room: `chat_${currentChat.chat_id}` });
                 typingTimeout = setTimeout(() => {}, 1000);
             }
         });
@@ -2697,7 +2694,9 @@
         inp.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                if (!document.getElementById('sendBtn').disabled) {
+                    sendMessage();
+                }
             }
         });
     }
@@ -2705,6 +2704,8 @@
     function cancelReply() {
         currentReplyMessage = null;
         document.getElementById('replyPreview').style.display = 'none';
+        document.getElementById('replyPreviewName').textContent = '';
+        document.getElementById('replyPreviewText').textContent = '';
     }
 
     // ===== КОНТЕКСТНОЕ МЕНЮ =====
@@ -2739,7 +2740,7 @@
 
         if (action === 'reply') {
             currentReplyMessage = currentContextMessage;
-            document.getElementById('replyPreviewName').textContent = 'Ответ';
+            document.getElementById('replyPreviewName').textContent = 'Ответ на сообщение';
             document.getElementById('replyPreviewText').textContent = currentContextMessage.content?.substring(0, 50) || 'Медиафайл';
             document.getElementById('replyPreview').style.display = 'flex';
             document.getElementById('messageInput').focus();
@@ -2771,16 +2772,24 @@
     function openForwardModal() {
         fetch('/api/get_chats_list')
             .then(r => r.json())
-            .then(c => {
+            .then(chats => {
                 let html = '<div class="members-list">';
-                c.forEach(ch => {
+
+                const availableChats = chats.filter(c => c.chat_type === 'personal' || c.chat_type === 'group');
+
+                availableChats.forEach(ch => {
+                    const chatId = ch.chat_id || ch.id;
+                    const chatType = ch.chat_type || 'personal';
+                    const targetId = chatType === 'personal' ? ch.other_user_id : chatId;
+
                     html += `
-                        <div class="member-item" onclick="forwardMessage(${ch.chat_id}, '${ch.chat_type}')">
+                        <div class="member-item" onclick="forwardMessage(${targetId}, '${chatType}', ${currentContextMessage.id})">
                             <div class="member-avatar">
-                                <span>${(ch.name || '?')[0].toUpperCase()}</span>
+                                ${ch.avatar ? `<img src="/${ch.avatar}">` : `<span>${(ch.name || '?')[0].toUpperCase()}</span>`}
                             </div>
                             <div class="member-info">
                                 <div class="member-name">${escapeHtml(ch.name)}</div>
+                                <div class="member-role">${chatType === 'personal' ? 'Чат' : 'Группа'}</div>
                             </div>
                         </div>
                     `;
@@ -2790,17 +2799,32 @@
             });
     }
 
-    function forwardMessage(toId, type) {
+    function forwardMessage(toId, type, messageId) {
+        const data = {
+            message_id: messageId
+        };
+
+        if (type === 'personal') {
+            data.to_chat_id = toId;
+        } else if (type === 'group') {
+            data.to_group_id = toId;
+        } else if (type === 'channel') {
+            data.to_channel_id = toId;
+        }
+
         fetch('/api/forward_message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message_id: currentContextMessage.id,
-                [`to_${type}_id`]: toId
-            })
-        }).then(() => {
-            closeModal('tempModal');
-            alert('Переслано');
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                closeModal('tempModal');
+                alert('Сообщение переслано');
+            } else {
+                alert('Ошибка при пересылке');
+            }
         });
     }
 
@@ -3060,14 +3084,12 @@
         const modal = document.getElementById('storyViewerModal');
         const story = currentStories[currentStoryIndex];
 
-        // Отмечаем просмотр
         fetch('/api/story_view', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ story_id: story.id })
         });
 
-        // Обновляем прогресс-бар
         const progressBar = document.getElementById('storyProgressBar');
         progressBar.innerHTML = currentStories.map((_, i) => `
             <div class="story-progress-segment">
@@ -3075,7 +3097,6 @@
             </div>
         `).join('');
 
-        // Обновляем информацию
         document.getElementById('storyUserAvatar').innerHTML = story.avatar ?
             `<img src="/${story.avatar}">` :
             `<span>${story.username[0].toUpperCase()}</span>`;
@@ -3083,7 +3104,6 @@
         document.getElementById('storyTime').textContent = formatStoryTime(story.created_at);
         document.getElementById('storyCaption').textContent = story.caption || '';
 
-        // Отображаем медиа
         const mediaContainer = document.getElementById('storyMedia');
         if (story.file_type === 'video') {
             mediaContainer.innerHTML = `<video src="/${story.file_path}" autoplay></video>`;
@@ -3093,7 +3113,6 @@
 
         modal.classList.add('active');
 
-        // Запускаем таймер прогресса
         startStoryTimer();
     }
 
@@ -3101,7 +3120,7 @@
         if (storyTimerInterval) clearInterval(storyTimerInterval);
 
         const story = currentStories[currentStoryIndex];
-        const duration = story.file_type === 'video' ? 15000 : 5000; // 15 сек для видео, 5 для фото
+        const duration = story.file_type === 'video' ? 15000 : 5000;
         const startTime = Date.now();
 
         storyTimerInterval = setInterval(() => {
@@ -3637,7 +3656,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    chat_id: currentChatType === 'personal' ? currentChat.id : null,
+                    chat_id: currentChatType === 'personal' ? currentChat.chat_id : null,
                     group_id: currentChatType === 'group' ? currentChat.id : null,
                     channel_id: currentChatType === 'channel' ? currentChat.id : null
                 })
@@ -3936,15 +3955,7 @@
             </div>
         `;
 
-        if (currentChatType === 'personal') {
-            html += `
-                <div class="context-menu-divider"></div>
-                <div class="context-menu-item" onclick="copyInviteLink(); closeModal('tempModal');">
-                    <i class="fas fa-link"></i>
-                    <span>Копировать ссылку</span>
-                </div>
-            `;
-        } else if (currentChatType === 'group') {
+        if (currentChatType === 'group') {
             html += `
                 <div class="context-menu-divider"></div>
                 <div class="context-menu-item" onclick="copyInviteLink(); closeModal('tempModal');">
@@ -4486,7 +4497,6 @@
         }).then(() => closeModal('tempModal'));
     }
 
-    // Инициализация при загрузке
     document.addEventListener('click', function(e) {
         const searchResults = document.getElementById('searchResults');
         const searchInput = document.getElementById('globalSearch');

@@ -475,24 +475,26 @@ def api_get_channel(channel_id):
     })
 
 
+# main.py
+
 @app.route('/api/get_chat/<int:user_id>')
 def api_get_chat(user_id):
     if 'user_id' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    chat_id = get_or_create_chat(session['user_id'], user_id)
-    messages = get_messages(chat_id=chat_id, user_id=session['user_id'])
+    current_user_id = session['user_id']
+
+    chat_id = get_or_create_chat(current_user_id, user_id)
+    messages = get_messages(chat_id=chat_id, user_id=current_user_id)
 
     # Проверяем, это чат с самим собой (Избранное)?
-    is_favorites = (user_id == session['user_id'])
-
-    if is_favorites:
-        my_user = get_user_by_id(session['user_id'])
+    if user_id == current_user_id:
+        my_user = get_user_by_id(current_user_id)
         return jsonify({
             'chat_id': chat_id,
             'is_favorites': True,
             'other_user': {
-                'id': session['user_id'],
+                'id': current_user_id,
                 'unique_id': my_user['unique_id'],
                 'username': my_user['username'],
                 'display_name': 'Избранное',
@@ -503,7 +505,7 @@ def api_get_chat(user_id):
         })
 
     # Обычный чат с другим пользователем
-    other_user = get_user_profile(user_id, session['user_id'])
+    other_user = get_user_profile(user_id, current_user_id)
     if not other_user:
         return jsonify({'error': 'User not found'}), 404
 
@@ -513,8 +515,6 @@ def api_get_chat(user_id):
         'other_user': other_user,
         'messages': [dict(m) for m in messages]
     })
-
-
 
 
 @app.route('/api/send_message', methods=['POST'])
@@ -594,15 +594,38 @@ def api_forward_message():
     to_group_id = data.get('to_group_id')
     to_channel_id = data.get('to_channel_id')
 
-    new_id = forward_message(
-        message_id=message_id,
-        to_chat_id=to_chat_id,
-        to_group_id=to_group_id,
-        to_channel_id=to_channel_id,
-        sender_id=session['user_id']
-    )
+    # Если пересылаем в личный чат, нужно получить или создать chat_id
+    if to_chat_id:
+        # to_chat_id здесь - это ID пользователя, с которым чат
+        chat_id = get_or_create_chat(session['user_id'], to_chat_id)
+        new_id = forward_message(
+            message_id=message_id,
+            to_chat_id=chat_id,
+            to_group_id=None,
+            to_channel_id=None,
+            sender_id=session['user_id']
+        )
+    else:
+        new_id = forward_message(
+            message_id=message_id,
+            to_chat_id=None,
+            to_group_id=to_group_id,
+            to_channel_id=to_channel_id,
+            sender_id=session['user_id']
+        )
 
-    return jsonify({'success': True, 'message_id': new_id}) if new_id else jsonify({'success': False}), 400
+    if new_id:
+        # Отправляем уведомление через сокет
+        if to_chat_id:
+            socketio.emit('new_message', {'chat_id': chat_id}, room=f"chat_{chat_id}")
+        elif to_group_id:
+            socketio.emit('new_message', {'group_id': to_group_id}, room=f"group_{to_group_id}")
+        elif to_channel_id:
+            socketio.emit('new_message', {'channel_id': to_channel_id}, room=f"channel_{to_channel_id}")
+
+        return jsonify({'success': True, 'message_id': new_id})
+
+    return jsonify({'success': False}), 400
 
 
 @app.route('/api/add_reaction', methods=['POST'])
