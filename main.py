@@ -78,66 +78,9 @@ def generate_room_id():
     return secrets.token_urlsafe(12)[:16]
 
 
-# ---------------------- ЕДИНАЯ АВТОРИЗАЦИЯ ----------------------
-@app.route('/')
-def index():
-    if 'user_id' in session:
-        return redirect(url_for('chat_page'))
-    return redirect(url_for('auth'))
-
-
-@app.route('/auth', methods=['GET', 'POST'])
-def auth():
-    """Единая страница входа и начала регистрации"""
-    if request.method == 'POST':
-        action = request.form.get('action')
-        phone = request.form.get('phone')
-        password = request.form.get('password')
-        remember = request.form.get('remember')
-
-        if action == 'login':
-            user = verify_user(phone, password)
-            if user:
-                if user['is_deleted']:
-                    return render_template('auth.html', error='Аккаунт удалён', mode='login')
-                if not user['registration_complete']:
-                    session['temp_user_id'] = user['id']
-                    session['temp_phone'] = user['phone']
-                    return redirect(url_for('complete_registration_page'))
-                return complete_login(user, remember)
-            return render_template('auth.html', error='Неверный логин или пароль', mode='login')
-
-        elif action == 'check_phone':
-            existing = check_phone_exists(phone)
-            if existing:
-                return jsonify({'exists': True, 'registration_complete': existing['registration_complete']})
-            return jsonify({'exists': False})
-
-        elif action == 'register_step1':
-            if len(password) < 8:
-                return render_template('auth.html', error='Пароль минимум 8 символов', mode='register', phone=phone)
-
-            existing = check_phone_exists(phone)
-            if existing:
-                if existing['registration_complete']:
-                    return render_template('auth.html', error='Пользователь уже существует', mode='login')
-                else:
-                    session['temp_user_id'] = existing['id']
-                    session['temp_phone'] = phone
-                    return redirect(url_for('complete_registration_page'))
-
-            user_id = create_user_initial(phone, password)
-            if user_id:
-                session['temp_user_id'] = user_id
-                session['temp_phone'] = phone
-                return redirect(url_for('complete_registration_page'))
-            return render_template('auth.html', error='Ошибка регистрации', mode='register')
-
-    mode = request.args.get('mode', 'login')
-    return render_template('auth.html', mode=mode)
-
-
+# ===== ФУНКЦИЯ ЗАВЕРШЕНИЯ ВХОДА =====
 def complete_login(user, remember=False):
+    """Завершает вход пользователя, устанавливает сессию"""
     session['user_id'] = user['id']
     session['unique_id'] = user['unique_id']
     session['username'] = user['username']
@@ -154,6 +97,94 @@ def complete_login(user, remember=False):
     return redirect(url_for('chat_page'))
 
 
+# ===== АВТОРИЗАЦИЯ =====
+@app.route('/')
+def index():
+    if 'user_id' in session:
+        return redirect(url_for('chat_page'))
+    return redirect(url_for('auth'))
+
+
+@app.route('/auth', methods=['GET', 'POST'])
+def auth():
+    """Единая страница входа и регистрации"""
+    if request.method == 'POST':
+        action = request.form.get('action')
+        phone = request.form.get('phone', '').strip()
+        password = request.form.get('password', '')
+        remember = request.form.get('remember') == 'on'
+
+        # === ВХОД ===
+        if action == 'login':
+            if not phone or not password:
+                return render_template('auth.html', error='Заполните все поля', mode='login')
+
+            user = verify_user(phone, password)
+
+            if not user:
+                return render_template('auth.html', error='Неверный номер или пароль', mode='login', phone=phone)
+
+            if user['is_deleted']:
+                return render_template('auth.html', error='Аккаунт удалён', mode='login')
+
+            if not user['registration_complete']:
+                session['temp_user_id'] = user['id']
+                session['temp_phone'] = user['phone']
+                return redirect(url_for('complete_registration_page'))
+
+            # Успешный вход
+            return complete_login(user, remember)
+
+        # === ПРОВЕРКА ТЕЛЕФОНА (AJAX) ===
+        elif action == 'check_phone':
+            existing = check_phone_exists(phone)
+            return jsonify({
+                'exists': existing is not None,
+                'registration_complete': bool(existing['registration_complete']) if existing else False
+            })
+
+        # === РЕГИСТРАЦИЯ ШАГ 1 ===
+        elif action == 'register_step1':
+            # Валидация
+            if len(password) < 8:
+                return render_template('auth.html',
+                                       error='Пароль должен быть не менее 8 символов',
+                                       mode='register',
+                                       phone=phone)
+
+            existing = check_phone_exists(phone)
+
+            # Если пользователь уже полностью зарегистрирован
+            if existing and existing['registration_complete']:
+                return render_template('auth.html',
+                                       error='Этот номер уже зарегистрирован. Войдите в аккаунт.',
+                                       mode='login',
+                                       phone=phone)
+
+            # Если есть незавершённая регистрация - продолжаем с ней
+            if existing and not existing['registration_complete']:
+                session['temp_user_id'] = existing['id']
+                session['temp_phone'] = phone
+                return redirect(url_for('complete_registration_page'))
+
+            # Создаём нового пользователя
+            user_id = create_user_initial(phone, password)
+
+            if not user_id:
+                return render_template('auth.html',
+                                       error='Ошибка при создании аккаунта. Попробуйте позже.',
+                                       mode='register')
+
+            session['temp_user_id'] = user_id
+            session['temp_phone'] = phone
+            return redirect(url_for('complete_registration_page'))
+
+    # GET запрос - показываем страницу
+    mode = request.args.get('mode', 'login')
+    phone = request.args.get('phone', '')
+    return render_template('auth.html', mode=mode, phone=phone)
+
+
 @app.route('/complete-registration', methods=['GET', 'POST'])
 def complete_registration_page():
     """Второй этап - выбор username, display_name и аватарки"""
@@ -167,20 +198,24 @@ def complete_registration_page():
         display_name = request.form.get('display_name', '').strip()
         avatar = request.form.get('avatar', '')
 
+        # Валидация username
         if len(username) < 3:
             return render_template('complete_registration.html', avatars=avatars,
                                    error='Имя пользователя минимум 3 символа')
         if not re.match(r'^[a-zA-Z0-9_]+$', username):
-            return render_template('complete_registration.html', avatars=avatars, error='Только латиница, цифры и _')
+            return render_template('complete_registration.html', avatars=avatars,
+                                   error='Только латиница, цифры и _')
         if not check_username_available(username):
-            return render_template('complete_registration.html', avatars=avatars, error='Имя пользователя занято')
+            return render_template('complete_registration.html', avatars=avatars,
+                                   error='Имя пользователя занято')
 
+        # Завершаем регистрацию
         if complete_registration(session['temp_user_id'], username, display_name, avatar):
             user = get_user_by_id(session['temp_user_id'])
             session.clear()
             return complete_login(user)
 
-        return render_template('complete_registration.html', avatars=avatars, error='Ошибка')
+        return render_template('complete_registration.html', avatars=avatars, error='Ошибка регистрации')
 
     return render_template('complete_registration.html', avatars=avatars)
 
@@ -195,7 +230,7 @@ def logout():
     return redirect(url_for('auth'))
 
 
-# ---------------------- ЧАТ ----------------------
+# ===== ЧАТ =====
 @app.route('/chat')
 def chat_page():
     if 'user_id' not in session:
@@ -885,18 +920,6 @@ def api_remove_channel_admin(channel_id):
     return jsonify({'success': True})
 
 
-@app.route('/api/subscribe_channel/<invite_link>')
-def api_subscribe_channel(invite_link):
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    channel = get_channel_by_invite_link(invite_link)
-    if not channel:
-        return jsonify({'success': False, 'error': 'Канал не найден'}), 404
-
-    subscribe_to_channel(channel['id'], session['user_id'])
-    return jsonify({'success': True, 'channel_id': channel['id']})
-
 
 @app.route('/api/unsubscribe_channel/<int:channel_id>', methods=['POST'])
 def api_unsubscribe_channel(channel_id):
@@ -1001,6 +1024,8 @@ def video_room_page(room_id):
 
 
 # ---------------------- ИСТОРИИ ----------------------
+# В main.py найдите функцию api_upload_story и замените её:
+
 @app.route('/api/upload_story', methods=['POST'])
 def api_upload_story():
     if 'user_id' not in session:
@@ -1016,8 +1041,26 @@ def api_upload_story():
         if not file:
             return jsonify({'error': 'No file'}), 400
 
+        # ВСЕ ФОРМАТЫ ИЗОБРАЖЕНИЙ
+        image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg',
+                            'tiff', 'tif', 'heic', 'heif', 'jfif', 'pjpeg', 'pjp',
+                            'avif', 'apng', 'jpe', 'jif', 'jfi', 'jfif-tbnl']
+
+        # ВСЕ ФОРМАТЫ ВИДЕО
+        video_extensions = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v',
+                            'mpg', 'mpeg', '3gp', '3g2', 'ogv', 'ts', 'mts', 'm2ts',
+                            'vob', 'divx', 'xvid', 'rm', 'rmvb', 'asf', 'mxf', 'hevc']
+
         ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
-        file_type = 'photo' if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp'] else 'video'
+
+        # Определяем тип файла
+        if ext in image_extensions:
+            file_type = 'photo'
+        elif ext in video_extensions:
+            file_type = 'video'
+        else:
+            file_type = 'photo'  # По умолчанию фото
+
         filename = f"{uuid.uuid4().hex}.{ext}"
         folder = os.path.join(app.config['UPLOAD_FOLDER'], 'stories')
         os.makedirs(folder, exist_ok=True)
@@ -1049,6 +1092,7 @@ def api_upload_story():
         return jsonify({'success': True, 'story_id': story_id})
 
     except Exception as e:
+        print(f"Error uploading story: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1599,6 +1643,54 @@ def uploaded_file(filename):
 def static_avatar(filename):
     return send_file(os.path.join('static', 'avatar-swg', filename))
 
+
+# Получение администраторов канала
+@app.route('/api/get_channel_admins/<int:channel_id>')
+def api_get_channel_admins(channel_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.id as user_id, u.username, u.display_name, u.avatar,
+               ca.can_post, ca.can_edit, ca.can_delete, ca.can_add_admins
+        FROM channel_admins ca
+        JOIN users u ON ca.user_id = u.id
+        WHERE ca.channel_id = ?
+    ''', (channel_id,))
+    admins = cursor.fetchall()
+    conn.close()
+
+    return jsonify([dict(a) for a in admins])
+
+
+# Подписка по invite_link
+@app.route('/api/subscribe/channel/<invite_link>')
+def subscribe_channel_by_link(invite_link):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    channel = get_channel_by_invite_link(invite_link)
+    if not channel:
+        return jsonify({'success': False, 'error': 'Канал не найден'}), 404
+
+    subscribe_to_channel(channel['id'], session['user_id'])
+    return jsonify({'success': True, 'channel_id': channel['id']})
+
+
+# Подписка по ID канала
+@app.route('/api/subscribe/channel/id/<int:channel_id>')
+def subscribe_channel_by_id(channel_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    channel = get_channel_by_id(channel_id)
+    if not channel:
+        return jsonify({'success': False, 'error': 'Канал не найден'}), 404
+
+    subscribe_to_channel(channel_id, session['user_id'])
+    return jsonify({'success': True, 'channel_id': channel_id})
 
 # ---------------------- SOCKETIO ----------------------
 @socketio.on('connect')

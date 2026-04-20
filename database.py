@@ -520,13 +520,17 @@ def get_user_profile(user_id, current_user_id):
         WHERE id = ? AND is_deleted = 0
     ''', (user_id,))
     user = cursor.fetchone()
-
-    if user:
-        user_dict = dict(user)
-        user_dict['is_blocked_by_me'] = is_user_blocked(current_user_id, user_id)
-        user_dict['has_blocked_me'] = is_user_blocked(user_id, current_user_id)
-
     conn.close()
+
+    # Если пользователь не найден
+    if not user:
+        return None
+
+    # Создаём словарь
+    user_dict = dict(user)
+    user_dict['is_blocked_by_me'] = is_user_blocked(current_user_id, user_id)
+    user_dict['has_blocked_me'] = is_user_blocked(user_id, current_user_id)
+
     return user_dict
 
 
