@@ -3,7 +3,7 @@ import os
 
 
 def create_missing_tables():
-    db_path = 'swillgram.db'
+    db_path = 'nexgram.db'
 
     # Проверяем существование базы данных
     if not os.path.exists(db_path):

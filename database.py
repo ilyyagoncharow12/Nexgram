@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from PIL import Image
 
-DB_PATH = 'swillgram.db'
+DB_PATH = 'nexgram.db'
 
 
 def get_db():

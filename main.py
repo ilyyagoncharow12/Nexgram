@@ -39,7 +39,7 @@ from database import (
 )
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'swillgram-secret-key-v3'
+app.config['SECRET_KEY'] = 'nexgram-secret-key-v3'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
@@ -1868,7 +1868,7 @@ def schedule_story_cleanup():
 
 if __name__ == '__main__':
     print("\n" + "=" * 60)
-    print("🔷 SWILLGRAM v3.0 ЗАПУЩЕН!")
+    print("🔷 NEXGRAM v3.0 ЗАПУЩЕН!")
     print("=" * 60)
 
     local_ip = get_local_ip()

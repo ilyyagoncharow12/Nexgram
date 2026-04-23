@@ -14,7 +14,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/icons/favicon.png">
 
-    <title>Swillgram - Мессенджер</title>
+    <title>Nexgram - Мессенджер</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -2056,7 +2056,7 @@ input:checked + .slider:before {
 
 
 /* ============================================
-   МОБИЛЬНАЯ ОПТИМИЗАЦИЯ SWILLGRAM
+   МОБИЛЬНАЯ ОПТИМИЗАЦИЯ NEXGRAM
    Вставлять в chat.html в секцию <style>
    НЕ ЛОМАЕТ ПК ВЕРСИЮ - только @media
    ============================================ */
@@ -2478,7 +2478,7 @@ input:checked + .slider:before {
             <button class="hamburger-btn" onclick="toggleBurgerMenu()">
                 <i class="fas fa-bars"></i>
             </button>
-            <h2>Swillgram</h2>
+            <h2>Nexgram</h2>
             <button class="new-chat-btn" onclick="openNewChatModal()">
                 <i class="fas fa-plus"></i>
             </button>
@@ -2547,7 +2547,7 @@ input:checked + .slider:before {
         <div class="messages-area" id="messagesArea">
             <div class="empty-state">
                 <i class="fas fa-comment-dots"></i>
-                <h3>Swillgram</h3>
+                <h3>Nexgram</h3>
                 <p>Выберите чат чтобы начать общение</p>
             </div>
         </div>
@@ -2676,7 +2676,7 @@ input:checked + .slider:before {
         </div>
     </div>
     <div class="burger-footer">
-        Swillgram v3.0<br>
+        Nexgram v0.35<br>
         ID: {{ user['unique_id'] }}
     </div>
 </div>
@@ -6030,12 +6030,12 @@ function showAllReactions(messageId, element) {
 
     // Загрузка настроек при старте
 function loadAppearanceSettings() {
-    const font = localStorage.getItem('swillgram_font');
-    const fontSize = localStorage.getItem('swillgram_font_size');
-    const bubbleRadius = localStorage.getItem('swillgram_bubble_radius');
-    const myColor = localStorage.getItem('swillgram_my_color');
-    const theirColor = localStorage.getItem('swillgram_their_color');
-    const wallpaper = localStorage.getItem('swillgram_wallpaper');
+    const font = localStorage.getItem('nexgram_font');
+    const fontSize = localStorage.getItem('nexgram_font_size');
+    const bubbleRadius = localStorage.getItem('nexgram_bubble_radius');
+    const myColor = localStorage.getItem('nexgram_my_color');
+    const theirColor = localStorage.getItem('nexgram_their_color');
+    const wallpaper = localStorage.getItem('nexgram_wallpaper');
 
     if (font) document.body.style.fontFamily = font;
     if (fontSize) document.body.style.fontSize = fontSize + 'px';
@@ -6067,7 +6067,7 @@ function toggleNightMode() {
         if (toggle) toggle.checked = false;
     }
 
-    localStorage.setItem('swillgram_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('nexgram_theme', isDark ? 'dark' : 'light');
 
     fetch('/api/update_theme', {
         method: 'POST',
@@ -6078,7 +6078,7 @@ function toggleNightMode() {
 
 // Загрузка темы при старте
 function loadTheme() {
-    const savedTheme = localStorage.getItem('swillgram_theme');
+    const savedTheme = localStorage.getItem('nexgram_theme');
     if (savedTheme === 'dark') {
         document.body.classList.add('dark');
         document.getElementById('nightModeIcon').className = 'fas fa-sun';
@@ -6097,12 +6097,12 @@ function openAppearance() {
 
     const currentSettings = {
         theme: document.body.classList.contains('dark') ? 'dark' : 'light',
-        fontFamily: localStorage.getItem('swillgram_font') || "'Unbounded', cursive",
-        fontSize: localStorage.getItem('swillgram_font_size') || '14',
-        bubbleRadius: localStorage.getItem('swillgram_bubble_radius') || '18',
-        myMessageColor: localStorage.getItem('swillgram_my_color') || '#667eea',
-        theirMessageColor: localStorage.getItem('swillgram_their_color') || '#f3f4f6',
-        wallpaper: localStorage.getItem('swillgram_wallpaper') || ''
+        fontFamily: localStorage.getItem('nexgram_font') || "'Unbounded', cursive",
+        fontSize: localStorage.getItem('nexgram_font_size') || '14',
+        bubbleRadius: localStorage.getItem('nexgram_bubble_radius') || '18',
+        myMessageColor: localStorage.getItem('nexgram_my_color') || '#667eea',
+        theirMessageColor: localStorage.getItem('nexgram_their_color') || '#f3f4f6',
+        wallpaper: localStorage.getItem('nexgram_wallpaper') || ''
     };
 
     const fonts = [
@@ -6223,7 +6223,7 @@ function selectWallpaper(url) {
     document.querySelectorAll('.wallpaper-option').forEach(el => el.classList.remove('selected'));
     event.target.closest('.wallpaper-option').classList.add('selected');
     document.getElementById('previewChatArea').style.backgroundImage = url ? `url('${url}')` : '';
-    localStorage.setItem('swillgram_wallpaper_temp', url);
+    localStorage.setItem('nexgram_wallpaper_temp', url);
 }
 
 function selectFont(font) {
@@ -6233,7 +6233,7 @@ function selectFont(font) {
     document.querySelectorAll('.preview-message-out, .preview-message-in').forEach(el => {
         el.style.fontFamily = font;
     });
-    localStorage.setItem('swillgram_font_temp', font);
+    localStorage.setItem('nexgram_font_temp', font);
 }
 
 function updateFontSizePreview(value) {
@@ -6241,7 +6241,7 @@ function updateFontSizePreview(value) {
     document.querySelectorAll('.preview-message-out, .preview-message-in').forEach(el => {
         el.style.fontSize = value + 'px';
     });
-    localStorage.setItem('swillgram_font_size_temp', value);
+    localStorage.setItem('nexgram_font_size_temp', value);
 }
 
 function updateBubbleRadiusPreview(value) {
@@ -6250,17 +6250,17 @@ function updateBubbleRadiusPreview(value) {
     document.querySelector('.preview-message-out').style.borderBottomRightRadius = '4px';
     document.querySelector('.preview-message-in').style.borderRadius = value + 'px';
     document.querySelector('.preview-message-in').style.borderBottomLeftRadius = '4px';
-    localStorage.setItem('swillgram_bubble_radius_temp', value);
+    localStorage.setItem('nexgram_bubble_radius_temp', value);
 }
 
 function updateMyMessageColorPreview(value) {
     document.querySelector('.preview-message-out').style.backgroundColor = value;
-    localStorage.setItem('swillgram_my_color_temp', value);
+    localStorage.setItem('nexgram_my_color_temp', value);
 }
 
 function updateTheirMessageColorPreview(value) {
     document.querySelector('.preview-message-in').style.backgroundColor = value;
-    localStorage.setItem('swillgram_their_color_temp', value);
+    localStorage.setItem('nexgram_their_color_temp', value);
 }
 
 function applyPreviewStyles(settings) {
@@ -6298,7 +6298,7 @@ function uploadCustomWallpaper() {
             reader.onload = (event) => {
                 const url = event.target.result;
                 document.getElementById('previewChatArea').style.backgroundImage = `url('${url}')`;
-                localStorage.setItem('swillgram_wallpaper_temp', url);
+                localStorage.setItem('nexgram_wallpaper_temp', url);
             };
             reader.readAsDataURL(file);
         }
@@ -6308,21 +6308,21 @@ function uploadCustomWallpaper() {
 
 function saveAppearanceSettings() {
     const settings = {
-        fontFamily: localStorage.getItem('swillgram_font_temp') || "'Unbounded', cursive",
-        fontSize: localStorage.getItem('swillgram_font_size_temp') || '14',
-        bubbleRadius: localStorage.getItem('swillgram_bubble_radius_temp') || '18',
-        myMessageColor: localStorage.getItem('swillgram_my_color_temp') || '#667eea',
-        theirMessageColor: localStorage.getItem('swillgram_their_color_temp') || '#f3f4f6',
-        wallpaper: localStorage.getItem('swillgram_wallpaper_temp') || ''
+        fontFamily: localStorage.getItem('nexgram_font_temp') || "'Unbounded', cursive",
+        fontSize: localStorage.getItem('nexgram_font_size_temp') || '14',
+        bubbleRadius: localStorage.getItem('nexgram_bubble_radius_temp') || '18',
+        myMessageColor: localStorage.getItem('nexgram_my_color_temp') || '#667eea',
+        theirMessageColor: localStorage.getItem('nexgram_their_color_temp') || '#f3f4f6',
+        wallpaper: localStorage.getItem('nexgram_wallpaper_temp') || ''
     };
 
     // Сохраняем
-    localStorage.setItem('swillgram_font', settings.fontFamily);
-    localStorage.setItem('swillgram_font_size', settings.fontSize);
-    localStorage.setItem('swillgram_bubble_radius', settings.bubbleRadius);
-    localStorage.setItem('swillgram_my_color', settings.myMessageColor);
-    localStorage.setItem('swillgram_their_color', settings.theirMessageColor);
-    localStorage.setItem('swillgram_wallpaper', settings.wallpaper);
+    localStorage.setItem('nexgram_font', settings.fontFamily);
+    localStorage.setItem('nexgram_font_size', settings.fontSize);
+    localStorage.setItem('nexgram_bubble_radius', settings.bubbleRadius);
+    localStorage.setItem('nexgram_my_color', settings.myMessageColor);
+    localStorage.setItem('nexgram_their_color', settings.theirMessageColor);
+    localStorage.setItem('nexgram_wallpaper', settings.wallpaper);
 
     // Применяем
     document.body.style.fontFamily = settings.fontFamily;
