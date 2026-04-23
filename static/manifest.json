@@ -1,6 +1,6 @@
 {
-  "name": "Swillgram",
-  "short_name": "Swillgram",
+  "name": "Nexgram",
+  "short_name": "Nexgram",
   "description": "Современный мессенджер",
   "start_url": "/",
   "display": "standalone",
