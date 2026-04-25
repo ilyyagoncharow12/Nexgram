@@ -2052,5 +2052,103 @@ def update_privacy_settings(user_id, last_seen, profile_photo, forward_messages,
     conn.close()
 
 
+# ----- НОВЫЕ ФУНКЦИИ ДЛЯ СТАТИСТИКИ ИСТОРИЙ И ПОИСКА В ЧАТЕ -----
+def get_story_stats(story_id, user_id):
+    """Получает полную статистику по истории (только для владельца)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT user_id FROM stories WHERE id = ?', (story_id,))
+    story = cursor.fetchone()
+
+    if not story or story['user_id'] != user_id:
+        conn.close()
+        return None
+
+    cursor.execute('''
+        SELECT u.id, u.unique_id, u.username, u.display_name, u.avatar, sv.viewed_at
+        FROM story_views sv
+        JOIN users u ON sv.user_id = u.id
+        WHERE sv.story_id = ?
+        ORDER BY sv.viewed_at DESC
+    ''', (story_id,))
+    viewers = cursor.fetchall()
+
+    cursor.execute('''
+        SELECT u.id, u.unique_id, u.username, u.display_name, u.avatar, si.created_at
+        FROM story_interactions si
+        JOIN users u ON si.user_id = u.id
+        WHERE si.story_id = ? AND si.type = 'like'
+        ORDER BY si.created_at DESC
+    ''', (story_id,))
+    likes = cursor.fetchall()
+
+    cursor.execute('''
+        SELECT u.id, u.unique_id, u.username, u.display_name, u.avatar, sr.reaction, sr.created_at
+        FROM story_reactions sr
+        JOIN users u ON sr.user_id = u.id
+        WHERE sr.story_id = ?
+        ORDER BY sr.created_at DESC
+    ''', (story_id,))
+    reactions = cursor.fetchall()
+
+    cursor.execute('''
+        SELECT u.id, u.unique_id, u.username, u.display_name, u.avatar, si.reply_text, si.created_at
+        FROM story_interactions si
+        JOIN users u ON si.user_id = u.id
+        WHERE si.story_id = ? AND si.type = 'reply' AND si.reply_text IS NOT NULL
+        ORDER BY si.created_at DESC
+    ''', (story_id,))
+    replies = cursor.fetchall()
+
+    conn.close()
+
+    return {
+        'viewers': [dict(v) for v in viewers],
+        'likes': [dict(l) for l in likes],
+        'reactions': [dict(r) for r in reactions],
+        'replies': [dict(r) for r in replies],
+        'total_views': len(viewers),
+        'total_likes': len(likes),
+        'total_reactions': len(reactions),
+        'total_replies': len(replies)
+    }
+
+
+def get_story_by_id(story_id):
+    """Получает историю по ID"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT s.*, u.username, u.display_name, u.avatar
+        FROM stories s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.id = ?
+    ''', (story_id,))
+    story = cursor.fetchone()
+    conn.close()
+    return story
+
+
+def search_messages_in_chat(chat_id, user_id, query):
+    """Поиск сообщений в чате по ключевому слову"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT m.*, u.username, u.display_name, u.avatar,
+               CASE WHEN m.sender_id = ? THEN 1 ELSE 0 END as is_mine
+        FROM messages m
+        LEFT JOIN users u ON m.sender_id = u.id
+        WHERE m.chat_id = ? 
+          AND m.is_deleted = 0
+          AND (m.content LIKE ? OR m.file_name LIKE ?)
+        ORDER BY m.created_at DESC
+        LIMIT 100
+    ''', (user_id, chat_id, f'%{query}%', f'%{query}%'))
+    messages = cursor.fetchall()
+    conn.close()
+    return messages
+
+
 # Инициализация БД при импорте
 init_db()

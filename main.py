@@ -35,7 +35,8 @@ from database import (
     create_video_call, add_video_call_participant, remove_video_call_participant,
     end_video_call, get_active_video_call, get_video_call_participants,
     get_preloaded_avatars, get_deleted_avatar,
-    block_user, unblock_user, is_user_blocked, get_blocked_users, get_user_profile, clear_chat, reply_to_story
+    block_user, unblock_user, is_user_blocked, get_blocked_users, get_user_profile, clear_chat, reply_to_story,
+    get_story_stats, get_story_by_id, search_messages_in_chat
 )
 
 app = Flask(__name__)
@@ -132,7 +133,6 @@ def auth():
                 session['temp_phone'] = user['phone']
                 return redirect(url_for('complete_registration_page'))
 
-            # Успешный вход
             return complete_login(user, remember)
 
         # === ПРОВЕРКА ТЕЛЕФОНА (AJAX) ===
@@ -145,7 +145,6 @@ def auth():
 
         # === РЕГИСТРАЦИЯ ШАГ 1 ===
         elif action == 'register_step1':
-            # Валидация
             if len(password) < 8:
                 return render_template('auth.html',
                                        error='Пароль должен быть не менее 8 символов',
@@ -154,20 +153,17 @@ def auth():
 
             existing = check_phone_exists(phone)
 
-            # Если пользователь уже полностью зарегистрирован
             if existing and existing['registration_complete']:
                 return render_template('auth.html',
                                        error='Этот номер уже зарегистрирован. Войдите в аккаунт.',
                                        mode='login',
                                        phone=phone)
 
-            # Если есть незавершённая регистрация - продолжаем с ней
             if existing and not existing['registration_complete']:
                 session['temp_user_id'] = existing['id']
                 session['temp_phone'] = phone
                 return redirect(url_for('complete_registration_page'))
 
-            # Создаём нового пользователя
             user_id = create_user_initial(phone, password)
 
             if not user_id:
@@ -179,7 +175,6 @@ def auth():
             session['temp_phone'] = phone
             return redirect(url_for('complete_registration_page'))
 
-    # GET запрос - показываем страницу
     mode = request.args.get('mode', 'login')
     phone = request.args.get('phone', '')
     return render_template('auth.html', mode=mode, phone=phone)
@@ -198,7 +193,6 @@ def complete_registration_page():
         display_name = request.form.get('display_name', '').strip()
         avatar = request.form.get('avatar', '')
 
-        # Валидация username
         if len(username) < 3:
             return render_template('complete_registration.html', avatars=avatars,
                                    error='Имя пользователя минимум 3 символа')
@@ -209,7 +203,6 @@ def complete_registration_page():
             return render_template('complete_registration.html', avatars=avatars,
                                    error='Имя пользователя занято')
 
-        # Завершаем регистрацию
         if complete_registration(session['temp_user_id'], username, display_name, avatar):
             user = get_user_by_id(session['temp_user_id'])
             session.clear()
@@ -510,8 +503,6 @@ def api_get_channel(channel_id):
     })
 
 
-# main.py
-
 @app.route('/api/get_chat/<int:user_id>')
 def api_get_chat(user_id):
     if 'user_id' not in session:
@@ -522,7 +513,6 @@ def api_get_chat(user_id):
     chat_id = get_or_create_chat(current_user_id, user_id)
     messages = get_messages(chat_id=chat_id, user_id=current_user_id)
 
-    # Проверяем, это чат с самим собой (Избранное)?
     if user_id == current_user_id:
         my_user = get_user_by_id(current_user_id)
         return jsonify({
@@ -539,7 +529,6 @@ def api_get_chat(user_id):
             'messages': [dict(m) for m in messages]
         })
 
-    # Обычный чат с другим пользователем
     other_user = get_user_profile(user_id, current_user_id)
     if not other_user:
         return jsonify({'error': 'User not found'}), 404
@@ -611,7 +600,6 @@ def api_send_message():
                     if message:
                         messages.append(dict(message))
         else:
-            # Только текст
             message = send_message(
                 chat_id=chat_id,
                 group_id=group_id,
@@ -623,7 +611,6 @@ def api_send_message():
             if message:
                 messages.append(dict(message))
 
-        # Отправляем через сокет
         if messages:
             room = f"chat_{chat_id}" if chat_id else f"group_{group_id}" if group_id else f"channel_{channel_id}"
             for msg in messages:
@@ -646,9 +633,7 @@ def api_forward_message():
     to_group_id = data.get('to_group_id')
     to_channel_id = data.get('to_channel_id')
 
-    # Если пересылаем в личный чат, нужно получить или создать chat_id
     if to_chat_id:
-        # to_chat_id здесь - это ID пользователя, с которым чат
         chat_id = get_or_create_chat(session['user_id'], to_chat_id)
         new_id = forward_message(
             message_id=message_id,
@@ -667,7 +652,6 @@ def api_forward_message():
         )
 
     if new_id:
-        # Отправляем уведомление через сокет
         if to_chat_id:
             socketio.emit('new_message', {'chat_id': chat_id}, room=f"chat_{chat_id}")
         elif to_group_id:
@@ -920,7 +904,6 @@ def api_remove_channel_admin(channel_id):
     return jsonify({'success': True})
 
 
-
 @app.route('/api/unsubscribe_channel/<int:channel_id>', methods=['POST'])
 def api_unsubscribe_channel(channel_id):
     if 'user_id' not in session:
@@ -1024,8 +1007,6 @@ def video_room_page(room_id):
 
 
 # ---------------------- ИСТОРИИ ----------------------
-# В main.py найдите функцию api_upload_story и замените её:
-
 @app.route('/api/upload_story', methods=['POST'])
 def api_upload_story():
     if 'user_id' not in session:
@@ -1041,25 +1022,22 @@ def api_upload_story():
         if not file:
             return jsonify({'error': 'No file'}), 400
 
-        # ВСЕ ФОРМАТЫ ИЗОБРАЖЕНИЙ
         image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg',
                             'tiff', 'tif', 'heic', 'heif', 'jfif', 'pjpeg', 'pjp',
-                            'avif', 'apng', 'jpe', 'jif', 'jfi', 'jfif-tbnl']
+                            'avif', 'apng', 'jpe', 'jif', 'jfi']
 
-        # ВСЕ ФОРМАТЫ ВИДЕО
         video_extensions = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v',
                             'mpg', 'mpeg', '3gp', '3g2', 'ogv', 'ts', 'mts', 'm2ts',
                             'vob', 'divx', 'xvid', 'rm', 'rmvb', 'asf', 'mxf', 'hevc']
 
         ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
 
-        # Определяем тип файла
         if ext in image_extensions:
             file_type = 'photo'
         elif ext in video_extensions:
             file_type = 'video'
         else:
-            file_type = 'photo'  # По умолчанию фото
+            file_type = 'photo'
 
         filename = f"{uuid.uuid4().hex}.{ext}"
         folder = os.path.join(app.config['UPLOAD_FOLDER'], 'stories')
@@ -1143,7 +1121,6 @@ def api_story_reaction():
 
     add_story_reaction(story_id, session['user_id'], reaction)
 
-    # Отправляем сообщение автору истории
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('SELECT user_id FROM stories WHERE id = ?', (story_id,))
@@ -1240,6 +1217,35 @@ def api_get_story_info(story_id):
         'likes': [dict(l) for l in likes],
         'reactions': [dict(r) for r in reactions]
     })
+
+
+# ---------------------- НОВЫЕ МАРШРУТЫ ДЛЯ СТАТИСТИКИ И ПОИСКА ----------------------
+@app.route('/api/get_story_stats/<int:story_id>')
+def api_get_story_stats(story_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    stats = get_story_stats(story_id, session['user_id'])
+    if stats is None:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    return jsonify(stats)
+
+
+@app.route('/api/search_in_chat', methods=['POST'])
+def api_search_in_chat():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    chat_id = data.get('chat_id')
+    query = data.get('query', '').strip()
+
+    if not chat_id or len(query) < 2:
+        return jsonify({'messages': []})
+
+    messages = search_messages_in_chat(chat_id, session['user_id'], query)
+    return jsonify({'messages': [dict(m) for m in messages]})
 
 
 # ---------------------- ПРОФИЛЬ ----------------------
@@ -1644,7 +1650,6 @@ def static_avatar(filename):
     return send_file(os.path.join('static', 'avatar-swg', filename))
 
 
-# Получение администраторов канала
 @app.route('/api/get_channel_admins/<int:channel_id>')
 def api_get_channel_admins(channel_id):
     if 'user_id' not in session:
@@ -1665,7 +1670,6 @@ def api_get_channel_admins(channel_id):
     return jsonify([dict(a) for a in admins])
 
 
-# Подписка по invite_link
 @app.route('/api/subscribe/channel/<invite_link>')
 def subscribe_channel_by_link(invite_link):
     if 'user_id' not in session:
@@ -1679,7 +1683,6 @@ def subscribe_channel_by_link(invite_link):
     return jsonify({'success': True, 'channel_id': channel['id']})
 
 
-# Подписка по ID канала
 @app.route('/api/subscribe/channel/id/<int:channel_id>')
 def subscribe_channel_by_id(channel_id):
     if 'user_id' not in session:
@@ -1691,6 +1694,28 @@ def subscribe_channel_by_id(channel_id):
 
     subscribe_to_channel(channel_id, session['user_id'])
     return jsonify({'success': True, 'channel_id': channel_id})
+
+
+@app.route('/api/get_user_by_username')
+def api_get_user_by_username():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    username = request.args.get('username', '')
+    user = get_user_by_username(username)
+    if user:
+        return jsonify({
+            'id': user['id'],
+            'unique_id': user['unique_id'],
+            'username': user['username'],
+            'display_name': user['display_name'],
+            'avatar': user['avatar'],
+            'phone': user['phone'],
+            'bio': user['bio'],
+            'last_seen': user['last_seen']
+        })
+    return jsonify({'error': 'Not found'}), 404
+
 
 # ---------------------- SOCKETIO ----------------------
 @socketio.on('connect')
