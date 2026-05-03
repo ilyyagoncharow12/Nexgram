@@ -1,0 +1,24 @@
+nexgram/
+│
+├── 📄 main.py                    # 🚀 Точка входа, Flask-приложение
+├── 📄 database.py                # 🗄️ База данных и ORM-функции
+├── 📄 chat.html                  # 🎨 Главный UI мессенджера
+├── 📄 auth.html                  # 🔐 Страница авторизации
+├── 📄 nexgram.db                 # 💾 База данных SQLite
+│
+├── 📁 static/                    # Статические файлы
+│   ├── 📁 uploads/               # Загрузки пользователей
+│   │   ├── avatars/              # 👤 Аватарки
+│   │   ├── banners/              # 🎨 Баннеры профилей
+│   │   ├── photos/               # 🖼 Фотографии
+│   │   ├── videos/               # 🎬 Видео
+│   │   ├── audio/                # 🎵 Аудиосообщения
+│   │   ├── music/                # 🎧 Музыка для плейлиста
+│   │   ├── stories/              # 📸 Истории
+│   │   └── wallpapers/           # 🖼 Обои чатов
+│   └── 📁 avatar-swg/            # Предзагруженные аватарки
+│
+└── 📁 templates/                 # HTML шаблоны
+    ├── auth.html
+    ├── chat.html
+    └── complete_registration.html
