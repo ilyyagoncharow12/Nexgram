@@ -64,16 +64,10 @@
 | **Google Fonts** | Шрифт Unbounded |
 
 
+Рекомендации по использованию мессенджера в браузере:
+## 📦 Рекомендации по использованию мессенджера в браузере:
+
+###  Масштаб браузера устанавливать 90% (клавишами Ctrl + , Ctrl -)
 
 
----
-
-## 📦 Установка
-
-###  Клонирование репозитория, установка зависимостей, requirements.txt - download
-```bash
-1. git clone https://github.com/yourusername/nexgram.git
-cd nexgram
-
-2.pip install -r requirements.txt
 
