@@ -1,7 +1,7 @@
 # 🔷 Nexgram - Современный мессенджер на Flask
 
 ![Nexgram Logo](https://img.shields.io/badge/Nexgram-v3.5-blue)
-![Python](https://img.shields.io/badge/Python-3.8+-green)
+![Python](https://img.shields.io/badge/Python-3.10+-green)
 ![Flask](https://img.shields.io/badge/Flask-2.0+-red)
 ![SQLite](https://img.shields.io/badge/SQLite-3-blue)
 ![WebSocket](https://img.shields.io/badge/WebSocket-Socket.IO-orange)
