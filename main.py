@@ -40,11 +40,11 @@ from database import (
 )
 
 app = Flask(__name__)
-
-app.config['SECRET_KEY'] = '6TinlinG_+pO0IM9U98h87gb^Y9UBouVFTRDgnh;//,ijnuYTFDRSreHJydRsrxE'
+app.config['SECRET_KEY'] = 'nexgram-secret-key-v3'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
 
 # Создаём папки
@@ -58,6 +58,7 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'wallpapers'), exist_ok=Tr
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'stories'), exist_ok=True)
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'story_music'), exist_ok=True)
 os.makedirs(os.path.join('static', 'avatar-swg'), exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'banners'), exist_ok=True)
 
 # Копируем аватарки если их нет
 default_avatar_files = ['avatar1.jpg', 'avatar2.jpg', 'avatar3.jpg', 'avatar4.jpg',
@@ -296,7 +297,7 @@ def api_update_last_seen():
     update_last_seen(session['user_id'])
     return jsonify({'success': True})
 
-# SOCKETS
+
 @app.route('/api/edit_message', methods=['POST'])
 def api_edit_message():
     if 'user_id' not in session:
@@ -315,7 +316,7 @@ def api_edit_message():
 
     return jsonify({'success': True})
 
-# SOCKETS
+
 @app.route('/api/delete_message', methods=['POST'])
 def api_delete_message():
     if 'user_id' not in session:
@@ -346,7 +347,7 @@ def api_clear_chat():
 
     return jsonify({'success': True})
 
-# SOCKETS
+
 @app.route('/api/block_user', methods=['POST'])
 def api_block_user():
     if 'user_id' not in session:
@@ -540,7 +541,7 @@ def api_get_chat(user_id):
         'messages': [dict(m) for m in messages]
     })
 
-# SOCKETS
+
 @app.route('/api/send_message', methods=['POST'])
 def api_send_message():
     if 'user_id' not in session:
@@ -621,7 +622,7 @@ def api_send_message():
         print(f"Error sending message: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# SOCKETS
+
 @app.route('/api/forward_message', methods=['POST'])
 def api_forward_message():
     if 'user_id' not in session:
@@ -1639,6 +1640,118 @@ def api_terminate_all_sessions():
     return jsonify({'success': True})
 
 
+# ===== ПЛЕЙЛИСТ API =====
+
+@app.route('/api/playlist/list', methods=['GET'])
+def api_get_playlist():
+    """Получить список песен пользователя"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    user_id = request.args.get('user_id', session['user_id'])
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, title, artist, file_path, duration
+        FROM user_playlist
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+    ''', (user_id,))
+    songs = cursor.fetchall()
+    conn.close()
+
+    return jsonify([dict(s) for s in songs])
+
+
+@app.route('/api/playlist/add', methods=['POST'])
+def api_add_to_playlist():
+    """Добавить песню в плейлист"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    file = request.files.get('file')
+    title = request.form.get('title', 'Без названия')
+    artist = request.form.get('artist', 'Неизвестен')
+
+    if not file:
+        return jsonify({'error': 'No file'}), 400
+
+    # Сохранение файла
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'mp3'
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    folder = os.path.join(app.config['UPLOAD_FOLDER'], 'music')
+    os.makedirs(folder, exist_ok=True)
+    file_path = os.path.join(folder, unique_name)
+    file.save(file_path)
+
+    # Определяем длительность (опционально)
+    duration = 0
+    try:
+        from mutagen.mp3 import MP3
+        audio = MP3(file_path)
+        duration = int(audio.info.length)
+    except:
+        pass
+
+    # Запись в БД
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO user_playlist (user_id, title, artist, file_path, duration)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (session['user_id'], title, artist, f"uploads/music/{unique_name}", duration))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/playlist/delete/<int:song_id>', methods=['POST'])
+def api_delete_song(song_id):
+    """Удалить песню из плейлиста"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM user_playlist WHERE id = ? AND user_id = ?', (song_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+# ===== БАННЕР (Цвет/Картинка) =====
+@app.route('/api/update_banner', methods=['POST'])
+def api_update_banner():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Проверяем, пришли ли JSON данные
+    if request.is_json:
+        data = request.get_json()
+        if data and 'banner_color' in data:
+            update_user_settings(session['user_id'], banner_color=data['banner_color'], banner_image=None)
+            return jsonify({'success': True, 'banner_color': data['banner_color']})
+
+    # Проверяем, пришел ли файл
+    if 'banner_image' in request.files:
+        file = request.files['banner_image']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+            unique_name = f"{uuid.uuid4().hex}.{ext}"
+            folder = os.path.join(app.config['UPLOAD_FOLDER'], 'banners')
+            os.makedirs(folder, exist_ok=True)
+            file_path = os.path.join(folder, unique_name)
+            file.save(file_path)
+
+            banner_path = f"uploads/banners/{unique_name}"
+            update_user_settings(session['user_id'], banner_image=banner_path, banner_color=None)
+
+            return jsonify({'success': True, 'banner_image': banner_path})
+
+    return jsonify({'success': False, 'error': 'No data provided'}), 400
+
 # ---------------------- ЗАГРУЗКА ФАЙЛОВ ----------------------
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -1716,6 +1829,15 @@ def api_get_user_by_username():
         })
     return jsonify({'error': 'Not found'}), 404
 
+
+@app.route('/api/get_blocked_users')
+def api_get_blocked_users():
+    """Получить список заблокированных пользователей"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    blocked = get_blocked_users(session['user_id'])
+    return jsonify([dict(b) for b in blocked])
 
 # ---------------------- SOCKETIO ----------------------
 @socketio.on('connect')

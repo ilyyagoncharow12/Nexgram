@@ -21,37 +21,37 @@ def init_db():
 
     # Таблица users
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            unique_id INTEGER UNIQUE NOT NULL,
-            phone TEXT UNIQUE NOT NULL,
-            username TEXT UNIQUE,
-            display_name TEXT,
-            password TEXT NOT NULL,
-            avatar TEXT,
-            bio TEXT,
-            birthday TEXT,
-            last_seen DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            privacy_last_seen TEXT DEFAULT 'everyone',
-            privacy_photo TEXT DEFAULT 'everyone',
-            privacy_forward TEXT DEFAULT 'everyone',
-            privacy_calls TEXT DEFAULT 'everyone',
-            privacy_messages TEXT DEFAULT 'everyone',
-            theme TEXT DEFAULT 'light',
-            font_size INTEGER DEFAULT 14,
-            bubble_radius INTEGER DEFAULT 18,
-            font_family TEXT DEFAULT "'Unbounded', cursive",
-            my_message_color TEXT DEFAULT '#667eea',
-            their_message_color TEXT DEFAULT '#f3f4f6',
-            wallpaper TEXT DEFAULT '',
-            wallpaper_image TEXT,
-            email TEXT,
-            is_deleted BOOLEAN DEFAULT 0,
-            deleted_at DATETIME,
-            registration_complete BOOLEAN DEFAULT 0
-        )
-    ''')
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unique_id INTEGER UNIQUE NOT NULL,
+                phone TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE,
+                display_name TEXT,
+                password TEXT NOT NULL,
+                avatar TEXT,
+                bio TEXT,
+                birthday TEXT,
+                last_seen DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                privacy_last_seen TEXT DEFAULT 'everyone',
+                privacy_photo TEXT DEFAULT 'everyone',
+                privacy_forward TEXT DEFAULT 'everyone',
+                privacy_calls TEXT DEFAULT 'everyone',
+                privacy_messages TEXT DEFAULT 'everyone',
+                theme TEXT DEFAULT 'light',
+                font_size INTEGER DEFAULT 14,
+                bubble_radius INTEGER DEFAULT 18,
+                font_family TEXT DEFAULT "'Unbounded', cursive",
+                my_message_color TEXT DEFAULT '#667eea',
+                their_message_color TEXT DEFAULT '#f3f4f6',
+                wallpaper TEXT DEFAULT '',
+                wallpaper_image TEXT,
+                email TEXT,
+                is_deleted BOOLEAN DEFAULT 0,
+                deleted_at DATETIME,
+                registration_complete BOOLEAN DEFAULT 0
+            )
+        ''')
 
     # Таблица chats
     cursor.execute('''
@@ -419,6 +419,43 @@ def init_db():
         ('deleted.png', 'Удалённый аккаунт', 'system')
     ]
 
+    # Добавляем новые колонки, если их нет
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN banner_color TEXT DEFAULT '#2b8d8d'")
+    except sqlite3.OperationalError:
+        pass  # Колонка уже существует
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN banner_image TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    # Таблица для плейлиста
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_playlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            artist TEXT,
+            file_path TEXT NOT NULL,
+            duration INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Таблица для прикрепленного канала
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_attached_channel (
+                user_id INTEGER PRIMARY KEY,
+                channel_id INTEGER NOT NULL,
+                attached_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (channel_id) REFERENCES channels(id)
+            )
+        ''')
+
+
     for ava in default_avatars:
         cursor.execute('''
             INSERT OR IGNORE INTO preloaded_avatars (filename, display_name, category)
@@ -510,23 +547,21 @@ def get_blocked_users(user_id):
 
 
 def get_user_profile(user_id, current_user_id):
-    """Получает профиль пользователя с информацией о блокировке"""
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT id, unique_id, username, display_name, phone, avatar, bio, birthday, last_seen, is_deleted
+        SELECT id, unique_id, username, display_name, phone, avatar, bio, birthday, 
+               last_seen, is_deleted, banner_color, banner_image
         FROM users 
         WHERE id = ? AND is_deleted = 0
     ''', (user_id,))
     user = cursor.fetchone()
     conn.close()
 
-    # Если пользователь не найден
     if not user:
         return None
 
-    # Создаём словарь
     user_dict = dict(user)
     user_dict['is_blocked_by_me'] = is_user_blocked(current_user_id, user_id)
     user_dict['has_blocked_me'] = is_user_blocked(user_id, current_user_id)
@@ -2019,7 +2054,9 @@ def get_user_settings(user_id):
         'my_message_color': user['my_message_color'],
         'their_message_color': user['their_message_color'],
         'wallpaper': user['wallpaper'],
-        'wallpaper_image': user['wallpaper_image']
+        'wallpaper_image': user['wallpaper_image'],
+        'banner_color': user['banner_color'] if 'banner_color' in user.keys() else None,
+        'banner_image': user['banner_image'] if 'banner_image' in user.keys() else None
     }
 
 
