@@ -6,6 +6,14 @@ from PIL import Image
 
 DB_PATH = 'nexgram.db'
 
+def get_moscow_time():
+    """Возвращает текущее московское время (UTC+3)"""
+    return (datetime.utcnow() + timedelta(hours=3)).strftime('%Y-%m-%d %H:%M:%S')
+
+def get_moscow_datetime():
+    """Возвращает объект datetime с московским временем"""
+    return datetime.utcnow() + timedelta(hours=3)
+
 
 def get_db():
     """Возвращает соединение с БД с row_factory=sqlite3.Row"""
@@ -21,37 +29,37 @@ def init_db():
 
     # Таблица users
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            unique_id INTEGER UNIQUE NOT NULL,
-            phone TEXT UNIQUE NOT NULL,
-            username TEXT UNIQUE,
-            display_name TEXT,
-            password TEXT NOT NULL,
-            avatar TEXT,
-            bio TEXT,
-            birthday TEXT,
-            last_seen DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            privacy_last_seen TEXT DEFAULT 'everyone',
-            privacy_photo TEXT DEFAULT 'everyone',
-            privacy_forward TEXT DEFAULT 'everyone',
-            privacy_calls TEXT DEFAULT 'everyone',
-            privacy_messages TEXT DEFAULT 'everyone',
-            theme TEXT DEFAULT 'light',
-            font_size INTEGER DEFAULT 14,
-            bubble_radius INTEGER DEFAULT 18,
-            font_family TEXT DEFAULT "'Unbounded', cursive",
-            my_message_color TEXT DEFAULT '#667eea',
-            their_message_color TEXT DEFAULT '#f3f4f6',
-            wallpaper TEXT DEFAULT '',
-            wallpaper_image TEXT,
-            email TEXT,
-            is_deleted BOOLEAN DEFAULT 0,
-            deleted_at DATETIME,
-            registration_complete BOOLEAN DEFAULT 0
-        )
-    ''')
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                unique_id INTEGER UNIQUE NOT NULL,
+                phone TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE,
+                display_name TEXT,
+                password TEXT NOT NULL,
+                avatar TEXT,
+                bio TEXT,
+                birthday TEXT,
+                last_seen DATETIME,
+                created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+                privacy_last_seen TEXT DEFAULT 'everyone',
+                privacy_photo TEXT DEFAULT 'everyone',
+                privacy_forward TEXT DEFAULT 'everyone',
+                privacy_calls TEXT DEFAULT 'everyone',
+                privacy_messages TEXT DEFAULT 'everyone',
+                theme TEXT DEFAULT 'light',
+                font_size INTEGER DEFAULT 14,
+                bubble_radius INTEGER DEFAULT 18,
+                font_family TEXT DEFAULT "'Unbounded', cursive",
+                my_message_color TEXT DEFAULT '#667eea',
+                their_message_color TEXT DEFAULT '#f3f4f6',
+                wallpaper TEXT DEFAULT '',
+                wallpaper_image TEXT,
+                email TEXT,
+                is_deleted BOOLEAN DEFAULT 0,
+                deleted_at DATETIME,
+                registration_complete BOOLEAN DEFAULT 0
+            )
+        ''')
 
     # Таблица chats
     cursor.execute('''
@@ -59,7 +67,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user1_id INTEGER NOT NULL,
             user2_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(user1_id, user2_id)
         )
     ''')
@@ -81,7 +89,7 @@ def init_db():
             is_deleted BOOLEAN DEFAULT 0,
             deleted_for_all BOOLEAN DEFAULT 0,
             edited_at DATETIME,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             reply_to_id INTEGER,
             forwarded_from_id INTEGER,
             forwarded_from_user_id INTEGER,
@@ -96,7 +104,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             contact_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(user_id, contact_id)
         )
     ''')
@@ -120,7 +128,7 @@ def init_db():
             file_path TEXT,
             file_name TEXT,
             note TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours'))
         )
     ''')
 
@@ -133,7 +141,7 @@ def init_db():
             call_type TEXT,
             status TEXT,
             duration INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours'))
         )
     ''')
 
@@ -145,7 +153,7 @@ def init_db():
             creator_id INTEGER NOT NULL,
             call_type TEXT DEFAULT 'video',
             status TEXT DEFAULT 'active',
-            started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            started_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             ended_at DATETIME,
             duration INTEGER DEFAULT 0,
             participant_count INTEGER DEFAULT 1
@@ -158,7 +166,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             call_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
-            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            joined_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             left_at DATETIME,
             audio_only BOOLEAN DEFAULT 0,
             screensharing BOOLEAN DEFAULT 0
@@ -174,7 +182,7 @@ def init_db():
             device TEXT,
             ip TEXT,
             location TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             last_active DATETIME
         )
     ''')
@@ -188,7 +196,7 @@ def init_db():
             file_path TEXT,
             caption TEXT,
             music TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             expires_at DATETIME
         )
     ''')
@@ -201,7 +209,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             type TEXT,
             reply_text TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(story_id, user_id, type)
         )
     ''')
@@ -229,7 +237,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS pinned_chats (
             user_id INTEGER NOT NULL,
             chat_id INTEGER NOT NULL,
-            pinned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            pinned_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             PRIMARY KEY (user_id, chat_id)
         )
     ''')
@@ -244,7 +252,7 @@ def init_db():
             is_public BOOLEAN DEFAULT 1,
             invite_link TEXT UNIQUE,
             avatar TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             FOREIGN KEY (owner_id) REFERENCES users(id)
         )
     ''')
@@ -256,7 +264,7 @@ def init_db():
             group_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             role TEXT DEFAULT 'member',
-            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            joined_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(group_id, user_id),
             FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id)
@@ -290,7 +298,7 @@ def init_db():
             is_public BOOLEAN DEFAULT 1,
             invite_link TEXT UNIQUE,
             avatar TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             FOREIGN KEY (owner_id) REFERENCES users(id)
         )
     ''')
@@ -301,7 +309,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
-            subscribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            subscribed_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(channel_id, user_id),
             FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id)
@@ -317,7 +325,7 @@ def init_db():
             can_edit BOOLEAN DEFAULT 0,
             can_delete BOOLEAN DEFAULT 0,
             can_add_admins BOOLEAN DEFAULT 0,
-            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            added_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             PRIMARY KEY (channel_id, user_id),
             FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id)
@@ -331,7 +339,7 @@ def init_db():
             message_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             reaction TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(message_id, user_id, reaction)
         )
     ''')
@@ -343,7 +351,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             search_query TEXT NOT NULL,
             search_type TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours'))
         )
     ''')
 
@@ -363,7 +371,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             blocked_user_id INTEGER NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(user_id, blocked_user_id)
         )
     ''')
@@ -375,7 +383,7 @@ def init_db():
             story_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             reaction TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(story_id, user_id, reaction)
         )
     ''')
@@ -386,7 +394,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             story_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
-            viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            viewed_at DATETIME DEFAULT (datetime('now', '+3 hours')),
             UNIQUE(story_id, user_id)
         )
     ''')
@@ -418,6 +426,42 @@ def init_db():
         ('avatar8.png', 'Аватар 8', 'default'),
         ('deleted.png', 'Удалённый аккаунт', 'system')
     ]
+
+    # Добавляем новые колонки, если их нет
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN banner_color TEXT DEFAULT '#2b8d8d'")
+    except sqlite3.OperationalError:
+        pass  # Колонка уже существует
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN banner_image TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    # Таблица для плейлиста
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_playlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            artist TEXT,
+            file_path TEXT NOT NULL,
+            duration INTEGER,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Таблица для прикрепленного канала
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_attached_channel (
+                user_id INTEGER PRIMARY KEY,
+                channel_id INTEGER NOT NULL,
+                attached_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (channel_id) REFERENCES channels(id)
+            )
+        ''')
 
     for ava in default_avatars:
         cursor.execute('''
@@ -510,23 +554,21 @@ def get_blocked_users(user_id):
 
 
 def get_user_profile(user_id, current_user_id):
-    """Получает профиль пользователя с информацией о блокировке"""
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT id, unique_id, username, display_name, phone, avatar, bio, birthday, last_seen, is_deleted
+        SELECT id, unique_id, username, display_name, phone, avatar, bio, birthday, 
+               last_seen, is_deleted, banner_color, banner_image
         FROM users 
         WHERE id = ? AND is_deleted = 0
     ''', (user_id,))
     user = cursor.fetchone()
     conn.close()
 
-    # Если пользователь не найден
     if not user:
         return None
 
-    # Создаём словарь
     user_dict = dict(user)
     user_dict['is_blocked_by_me'] = is_user_blocked(current_user_id, user_id)
     user_dict['has_blocked_me'] = is_user_blocked(user_id, current_user_id)
@@ -614,7 +656,7 @@ def create_user_initial(phone, password, email=None):
         cursor.execute('''
             INSERT INTO users (unique_id, phone, username, display_name, password, last_seen, email, registration_complete)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-        ''', (unique_id, phone, temp_username, temp_username, hash_password(password), datetime.now(), email))
+        ''', (unique_id, phone, temp_username, temp_username, hash_password(password), get_moscow_time(), email))
         conn.commit()
         user_id = cursor.lastrowid
 
@@ -702,7 +744,7 @@ def verify_user(phone, password):
 def update_last_seen(user_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('UPDATE users SET last_seen = ? WHERE id = ?', (datetime.now(), user_id))
+    cursor.execute('UPDATE users SET last_seen = ? WHERE id = ?', (get_moscow_time(), user_id))
     conn.commit()
     conn.close()
 
@@ -724,7 +766,7 @@ def delete_user_account(user_id):
     user = cursor.fetchone()
 
     if user:
-        new_username = f"deleted_{user['username']}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        new_username = f"deleted_{user['username']}_{get_moscow_datetime().strftime('%Y%m%d%H%M%S')}"
         cursor.execute('''
             UPDATE users SET 
                 is_deleted = 1,
@@ -736,7 +778,7 @@ def delete_user_account(user_id):
                 phone = ?,
                 password = ?
             WHERE id = ?
-        ''', (datetime.now(), new_username, f"deleted_{user_id}", hash_password("deleted"), user_id))
+        ''', (get_moscow_time(), new_username, f"deleted_{user_id}", hash_password("deleted"), user_id))
         conn.commit()
     conn.close()
     return True
@@ -1391,7 +1433,7 @@ def edit_message(message_id, new_content):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('UPDATE messages SET content = ?, edited_at = ? WHERE id = ?',
-                   (new_content, datetime.now(), message_id))
+                   (new_content, get_moscow_time(), message_id))
     conn.commit()
     conn.close()
 
@@ -1469,13 +1511,14 @@ def get_user_reactions(message_id, user_id):
 
 # ----- ИСТОРИИ -----
 def create_story(user_id, file_type, file_path, caption, music_path, privacy, selected_users=None):
-    expires_at = datetime.now() + timedelta(hours=24)
+    expires_at = get_moscow_datetime() + timedelta(hours=24)
+    expires_at_str = expires_at.strftime('%Y-%m-%d %H:%M:%S')
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO stories (user_id, file_type, file_path, caption, music, expires_at)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', (user_id, file_type, file_path, caption, music_path, expires_at))
+    ''', (user_id, file_type, file_path, caption, music_path, expires_at_str))
     story_id = cursor.lastrowid
     cursor.execute('INSERT INTO story_privacy (story_id, privacy_type) VALUES (?, ?)', (story_id, privacy))
     if privacy == 'selected' and selected_users:
@@ -1497,7 +1540,7 @@ def get_stories_for_user(viewer_id):
                (SELECT COUNT(*) FROM story_reactions WHERE story_id = s.id) as reactions_count
         FROM stories s
         JOIN users u ON s.user_id = u.id
-        WHERE s.expires_at > datetime('now')
+        WHERE s.expires_at > datetime('now', '+3 hours')
           AND u.is_deleted = 0
           AND (
               s.user_id = ?
@@ -1597,7 +1640,7 @@ def delete_expired_stories():
     conn = get_db()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT file_path, music FROM stories WHERE expires_at < datetime("now")')
+    cursor.execute('SELECT file_path, music FROM stories WHERE expires_at < datetime("now", "+3 hours")')
     expired = cursor.fetchall()
 
     for story in expired:
@@ -1610,7 +1653,7 @@ def delete_expired_stories():
                 except:
                     pass
 
-    cursor.execute('DELETE FROM stories WHERE expires_at < datetime("now")')
+    cursor.execute('DELETE FROM stories WHERE expires_at < datetime("now", "+3 hours")')
     deleted = cursor.rowcount
     conn.commit()
     conn.close()
@@ -1651,7 +1694,7 @@ def pin_chat(user_id, chat_id):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('INSERT OR REPLACE INTO pinned_chats (user_id, chat_id, pinned_at) VALUES (?, ?, ?)',
-                   (user_id, chat_id, datetime.now()))
+                   (user_id, chat_id, get_moscow_time()))
     conn.commit()
     conn.close()
 
@@ -1726,7 +1769,7 @@ def remove_video_call_participant(room_id, user_id):
             UPDATE video_call_participants 
             SET left_at = ?
             WHERE call_id = ? AND user_id = ?
-        ''', (datetime.now(), call['id'], user_id))
+        ''', (get_moscow_time(), call['id'], user_id))
         conn.commit()
     conn.close()
 
@@ -1742,18 +1785,18 @@ def end_video_call(room_id):
         if call['started_at']:
             started = datetime.fromisoformat(call['started_at']) if isinstance(call['started_at'], str) else call[
                 'started_at']
-            duration = int((datetime.now() - started).total_seconds())
+            duration = int((get_moscow_datetime() - started).total_seconds())
 
         cursor.execute('''
             UPDATE video_calls 
             SET status = "ended", ended_at = ?, duration = ?
             WHERE id = ?
-        ''', (datetime.now(), duration, call['id']))
+        ''', (get_moscow_time(), duration, call['id']))
         cursor.execute('''
             UPDATE video_call_participants 
             SET left_at = ?
             WHERE call_id = ? AND left_at IS NULL
-        ''', (datetime.now(), call['id']))
+        ''', (get_moscow_time(), call['id']))
         conn.commit()
     conn.close()
 
@@ -1957,7 +2000,7 @@ def add_session(user_id, session_token, device, ip):
     cursor.execute('''
         INSERT INTO user_sessions (user_id, session_token, device, ip, last_active)
         VALUES (?, ?, ?, ?, ?)
-    ''', (user_id, session_token, device, ip, datetime.now()))
+    ''', (user_id, session_token, device, ip, get_moscow_time()))
     conn.commit()
     conn.close()
 
@@ -2019,7 +2062,9 @@ def get_user_settings(user_id):
         'my_message_color': user['my_message_color'],
         'their_message_color': user['their_message_color'],
         'wallpaper': user['wallpaper'],
-        'wallpaper_image': user['wallpaper_image']
+        'wallpaper_image': user['wallpaper_image'],
+        'banner_color': user['banner_color'] if 'banner_color' in user.keys() else None,
+        'banner_image': user['banner_image'] if 'banner_image' in user.keys() else None
     }
 
 
@@ -2147,7 +2192,7 @@ def search_messages_in_chat(chat_id, user_id, query):
     ''', (user_id, chat_id, f'%{query}%', f'%{query}%'))
     messages = cursor.fetchall()
     conn.close()
-    return messages
+    return  messages
 
 
 # Инициализация БД при импорте
