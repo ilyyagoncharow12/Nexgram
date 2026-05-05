@@ -8,6 +8,11 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 from PIL import Image
 
+from call_manager import call_manager
+
+# main.py - добавьте после существующих импортов
+from webrtc import init_webrtc
+
 from database import (
     get_db, init_db, hash_password, resize_and_crop_image, generate_unique_id,
     create_user_initial, complete_registration, check_phone_exists, check_username_available,
@@ -46,6 +51,8 @@ app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
+# Инициализация WebRTC менеджера
+webrtc_manager = init_webrtc(socketio)
 
 # Создаём папки
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -1939,6 +1946,124 @@ def api_add_to_playlist_from_message():
         return jsonify({'error': str(e)}), 500
 
 
+# main.py - добавьте эти маршруты
+
+@app.route('/api/initiate_call', methods=['POST'])
+def api_initiate_call():
+    """Инициирует звонок через REST API"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    target_user_id = data.get('target_user_id')
+    call_type = data.get('call_type', 'audio')
+
+    if not target_user_id:
+        return jsonify({'error': 'target_user_id required'}), 400
+
+    # Создаем запись о звонке в БД
+    call_id = add_call(session['user_id'], target_user_id, call_type, 'ringing')
+
+    # Генерируем уникальный ID комнаты
+    room_id = f"call_{session['user_id']}_{target_user_id}_{uuid.uuid4().hex[:8]}"
+
+    return jsonify({
+        'success': True,
+        'call_id': call_id,
+        'room_id': room_id,
+        'caller_name': session.get('display_name', session['username']),
+        'caller_id': session['user_id']
+    })
+
+
+@app.route('/api/update_call_status', methods=['POST'])
+def api_update_call_status():
+    """Обновляет статус звонка"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    call_id = data.get('call_id')
+    status = data.get('status')
+    duration = data.get('duration', 0)
+
+    if not call_id or not status:
+        return jsonify({'error': 'call_id and status required'}), 400
+
+    update_call_status(call_id, status, duration)
+    return jsonify({'success': True})
+
+
+
+
+
+# main.py - добавьте этот маршрут
+
+@app.route('/call')
+def call_page():
+    """Страница для звонков"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
+
+    return render_template('call_interface.html')
+
+
+
+#-------------------ЗВОНКИ--------------------------
+
+@app.route('/start_call/<int:target_user_id>')
+def start_call_page(target_user_id):
+    """Страница для начала звонка"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
+
+    call_type = request.args.get('type', 'audio')
+
+    # Создаем комнату для звонка
+    room_id = call_manager.create_call_room(session['user_id'], call_type)
+
+    return render_template('call.html',
+                           room_id=room_id,
+                           call_type=call_type,
+                           is_initiator=True,
+                           target_user_id=target_user_id,
+                           current_user_id=session['user_id'],
+                           current_user_name=session.get('display_name', session['username']))
+
+
+@app.route('/join_call/<room_id>')
+def join_call_page(room_id):
+    """Страница для присоединения к звонку"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth'))
+
+    call_info = call_manager.get_call_info(room_id)
+    if not call_info:
+        return render_template('room_not_found.html', room_id=room_id)
+
+    call_manager.join_call(room_id, session['user_id'])
+
+    return render_template('call.html',
+                           room_id=room_id,
+                           call_type=call_info['call_type'],
+                           is_initiator=False,
+                           target_user_id=call_info['initiator_id'],
+                           current_user_id=session['user_id'],
+                           current_user_name=session.get('display_name', session['username']))
+
+
+@app.route('/api/get_call_info/<room_id>')
+def api_get_call_info(room_id):
+    """API для получения информации о звонке"""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    call_info = call_manager.get_call_info(room_id)
+    if call_info:
+        return jsonify(call_info)
+    return jsonify({'error': 'Call not found'}), 404
+
+
 # ---------------------- SOCKETIO ----------------------
 @socketio.on('connect')
 def handle_connect():
@@ -2083,6 +2208,365 @@ def handle_ice_candidate(data):
         'candidate': data['candidate'],
         'from': request.sid
     }, room=data['to'])
+
+
+# main.py - добавьте в секцию с сокетами
+
+@socketio.on('call_user')
+def handle_call_user(data):
+    """Обработчик звонка пользователю"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('user_id')
+    call_type = data.get('call_type', 'audio')
+
+    # Добавляем звонок в БД
+    call_id = add_call(session['user_id'], target_user_id, call_type, 'ringing')
+
+    # Отправляем уведомление целевому пользователю
+    emit('incoming_call', {
+        'call_id': call_id,
+        'caller_id': session['user_id'],
+        'caller_name': session.get('display_name', session['username']),
+        'call_type': call_type
+    }, room=f"user_{target_user_id}")
+
+
+@socketio.on('accept_call')
+def handle_accept_call(data):
+    """Принятие звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    update_call_status(call_id, 'answered')
+
+    emit('call_accepted', {
+        'call_id': call_id,
+        'accepter_id': session['user_id']
+    }, room=f"user_{data.get('caller_id')}")
+
+
+@socketio.on('end_call')
+def handle_end_call(data):
+    """Завершение звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    duration = data.get('duration', 0)
+    update_call_status(call_id, 'ended', duration)
+
+
+# main.py - добавьте эти обработчики в секцию с Socket.IO
+
+@socketio.on('initiate_call')
+def handle_initiate_call(data):
+    """Начало звонка"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    call_type = data.get('call_type', 'audio')
+
+    call_id, room_id = create_call_room(session['user_id'], target_user_id, call_type)
+
+    # Отправляем входящий звонок
+    emit('incoming_call', {
+        'call_id': call_id,
+        'caller_id': session['user_id'],
+        'caller_name': session.get('display_name', session['username']),
+        'call_type': call_type,
+        'room_id': room_id
+    }, room=f"user_{target_user_id}")
+
+    emit('call_initiated', {
+        'call_id': call_id,
+        'status': 'ringing'
+    })
+
+
+@socketio.on('accept_call')
+def handle_accept_call(data):
+    """Принятие звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    update_call(call_id, 'answered')
+
+    emit('call_accepted', {
+        'call_id': call_id,
+        'accepter_id': session['user_id']
+    }, room=f"user_{data.get('accepter_id')}")
+
+
+@socketio.on('reject_call')
+def handle_reject_call(data):
+    """Отклонение звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    update_call(call_id, 'rejected')
+
+    emit('call_rejected', {
+        'call_id': call_id
+    }, room=f"user_{data.get('caller_id')}")
+
+
+@socketio.on('end_call')
+def handle_end_call(data):
+    """Завершение звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    duration = data.get('duration', 0)
+
+    if call_id:
+        update_call(call_id, 'ended', duration)
+
+    target_user_id = data.get('target_user_id')
+    if target_user_id:
+        emit('call_ended_by_peer', {
+            'call_id': call_id
+        }, room=f"user_{target_user_id}")
+
+
+@socketio.on('call_offer')
+def handle_call_offer(data):
+    """Пересылка WebRTC offer"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    offer = data.get('offer')
+
+    if target_user_id and offer:
+        emit('call_offer_received', {
+            'offer': offer,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+
+@socketio.on('call_answer')
+def handle_call_answer(data):
+    """Пересылка WebRTC answer"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    answer = data.get('answer')
+
+    if target_user_id and answer:
+        emit('call_answer_received', {
+            'answer': answer,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+
+@socketio.on('ice_candidate')
+def handle_ice_candidate(data):
+    """Пересылка ICE кандидатов"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    candidate = data.get('candidate')
+
+    if target_user_id and candidate:
+        emit('ice_candidate_received', {
+            'candidate': candidate,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+
+# main.py - ОБРАБОТЧИКИ ЗВОНКОВ
+
+@socketio.on('initiate_call')
+def handle_initiate_call(data):
+    """Инициация звонка"""
+    if 'user_id' not in session:
+        print("❌ User not logged in")
+        return
+
+    target_user_id = data.get('target_user_id')
+    call_type = data.get('call_type', 'audio')
+
+    print(f"📞 Call initiated by user {session['user_id']} to user {target_user_id}")
+    print(f"📞 Call type: {call_type}")
+
+    # Создаем запись о звонке в БД
+    from database import add_call
+    call_id = add_call(session['user_id'], target_user_id, call_type, 'ringing')
+
+    # Отправляем событие целевому пользователю
+    call_data = {
+        'call_id': call_id,
+        'caller_id': session['user_id'],
+        'caller_name': session.get('display_name', session.get('username', 'Пользователь')),
+        'call_type': call_type
+    }
+
+    # ВАЖНО: Отправляем в комнату целевого пользователя
+    room = f"user_{target_user_id}"
+    print(f"📡 Emitting incoming_call to room: {room}")
+    print(f"📡 Call data: {call_data}")
+
+    socketio.emit('incoming_call', call_data, room=room)
+
+    # Отправляем подтверждение инициатору
+    emit('call_initiated', {
+        'call_id': call_id,
+        'status': 'ringing'
+    })
+
+    print(f"✅ incoming_call event sent to user_{target_user_id}")
+
+
+@socketio.on('accept_call')
+def handle_accept_call(data):
+    """Принятие звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    accepter_id = data.get('accepter_id')
+
+    print(f"✅ Call {call_id} accepted by user {session['user_id']}")
+
+    # Получаем информацию о звонке
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT caller_id FROM calls WHERE id = ?', (call_id,))
+    call_info = cursor.fetchone()
+    conn.close()
+
+    if call_info:
+        caller_id = call_info['caller_id']
+
+        # Отправляем событие инициатору звонка
+        print(f"📡 Emitting call_accepted to user_{caller_id}")
+        socketio.emit('call_accepted', {
+            'call_id': call_id,
+            'accepter_id': session['user_id']
+        }, room=f"user_{caller_id}")
+
+        # Обновляем статус звонка
+        from database import update_call_status
+        update_call_status(call_id, 'answered')
+
+
+@socketio.on('reject_call')
+def handle_reject_call(data):
+    """Отклонение звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    caller_id = data.get('caller_id')
+
+    print(f"❌ Call {call_id} rejected by user {session['user_id']}")
+
+    if caller_id:
+        print(f"📡 Emitting call_rejected to user_{caller_id}")
+        socketio.emit('call_rejected', {
+            'call_id': call_id
+        }, room=f"user_{caller_id}")
+
+    # Обновляем статус
+    from database import update_call_status
+    update_call_status(call_id, 'rejected')
+
+
+@socketio.on('end_call')
+def handle_end_call(data):
+    """Завершение звонка"""
+    if 'user_id' not in session:
+        return
+
+    call_id = data.get('call_id')
+    target_user_id = data.get('target_user_id')
+    duration = data.get('duration', 0)
+
+    print(f"🔴 Call ended by user {session['user_id']}")
+
+    if target_user_id:
+        print(f"📡 Emitting call_ended_by_peer to user_{target_user_id}")
+        socketio.emit('call_ended_by_peer', {
+            'call_id': call_id
+        }, room=f"user_{target_user_id}")
+
+    # Обновляем статус
+    if call_id:
+        from database import update_call_status
+        update_call_status(call_id, 'ended', duration)
+
+
+@socketio.on('call_offer')
+def handle_call_offer(data):
+    """Пересылка WebRTC offer"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    offer = data.get('offer')
+
+    print(f"📡 Forwarding offer to user_{target_user_id}")
+
+    if target_user_id and offer:
+        socketio.emit('call_offer_received', {
+            'offer': offer,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+
+@socketio.on('call_answer')
+def handle_call_answer(data):
+    """Пересылка WebRTC answer"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    answer = data.get('answer')
+
+    print(f"📡 Forwarding answer to user_{target_user_id}")
+
+    if target_user_id and answer:
+        socketio.emit('call_answer_received', {
+            'answer': answer,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+
+@socketio.on('ice_candidate')
+def handle_ice_candidate(data):
+    """Пересылка ICE кандидатов"""
+    if 'user_id' not in session:
+        return
+
+    target_user_id = data.get('target_user_id')
+    candidate = data.get('candidate')
+
+    if target_user_id and candidate:
+        socketio.emit('ice_candidate_received', {
+            'candidate': candidate,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
+
+        @socketio.on('connect')
+        def handle_connect():
+            if 'user_id' in session:
+                user_room = f"user_{session['user_id']}"
+                join_room(user_room)
+                print(f"✅ User {session['user_id']} joined room: {user_room}")
+
+                update_last_seen(session['user_id'])
+                emit('connected', {'user_id': session['user_id']})
+            else:
+                print("❌ User not in session")
 
 
 # ---------------------- ЗАПУСК ----------------------

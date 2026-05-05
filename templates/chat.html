@@ -3981,6 +3981,466 @@
 }
 
 
+
+        /* Стили для звонков */
+.call-interface-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 2000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-interface-overlay.active {
+    display: flex;
+}
+
+.call-video-container {
+    width: 100%;
+    max-width: 800px;
+    aspect-ratio: 16/9;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.remote-call-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 20px;
+}
+
+.no-video-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 20px;
+    font-size: 100px;
+    color: white;
+}
+
+.local-call-video {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 3px solid rgba(255,255,255,0.5);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.call-info-bar {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.call-contact-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.call-status {
+    font-size: 16px;
+    color: #8e8e93;
+}
+
+.call-timer {
+    font-size: 18px;
+    color: #34c759;
+    margin-top: 4px;
+}
+
+.call-controls {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+}
+
+.call-control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+.call-control-btn:hover {
+    transform: scale(1.1);
+    background: rgba(255,255,255,0.2);
+}
+
+.call-control-btn.end-btn {
+    background: #ff3b30;
+    width: 70px;
+    height: 70px;
+}
+
+.call-control-btn.end-btn:hover {
+    background: #dc2626;
+}
+
+/* Модалка входящего звонка */
+.incoming-call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 3000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.incoming-call-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.incoming-call-name {
+    font-size: 28px;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.incoming-call-type {
+    font-size: 16px;
+    color: #8e8e93;
+    margin-bottom: 30px;
+}
+
+.incoming-call-buttons {
+    display: flex;
+    gap: 30px;
+}
+
+.incoming-accept-btn, .incoming-reject-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 28px;
+    transition: all 0.2s;
+}
+
+.incoming-accept-btn {
+    background: #34c759;
+    color: white;
+}
+
+.incoming-reject-btn {
+    background: #ff3b30;
+    color: white;
+}
+
+.incoming-accept-btn:hover, .incoming-reject-btn:hover {
+    transform: scale(1.1);
+}
+
+
+#audioCallBtn, #videoCallBtn {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#callInterface {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+
+
+
+
+
+        /* ===== ИНТЕРФЕЙС ЗВОНКА ===== */
+#callInterface {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 9999;
+    flex-direction: column;
+    color: white;
+    font-family: 'Unbounded', cursive;
+}
+
+.call-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 60px 20px 20px;
+    text-align: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
+    z-index: 10;
+}
+
+.call-contact-name {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.call-status {
+    font-size: 16px;
+    color: #aaa;
+    margin-top: 8px;
+}
+
+.call-timer {
+    font-size: 18px;
+    color: #4CAF50;
+    margin-top: 4px;
+}
+
+.call-video-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #111;
+}
+
+.remote-call-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.no-video-placeholder {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+    color: white;
+}
+
+.local-call-video {
+    position: absolute;
+    top: 100px;
+    right: 20px;
+    width: 140px;
+    height: 200px;
+    border-radius: 16px;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: #222;
+    z-index: 5;
+}
+
+.call-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 30px;
+    background: rgba(0,0,0,0.9);
+}
+
+.call-control-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.call-control-btn:hover {
+    background: rgba(255,255,255,0.25);
+    transform: scale(1.1);
+}
+
+.call-control-btn.end-call {
+    background: #ff3b30;
+    width: 70px;
+    height: 70px;
+}
+
+.call-control-btn.end-call:hover {
+    background: #dc2626;
+}
+
+/* Оверлей звонка */
+.ringing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+}
+
+.ringing-animation {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulse 1.5s infinite;
+    margin-bottom: 20px;
+}
+
+.ringing-animation i {
+    font-size: 36px;
+    color: white;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.ringing-text {
+    font-size: 18px;
+    color: #ccc;
+}
+
+/* Модалка входящего */
+.incoming-call-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 10000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.incoming-call-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite;
+}
+
+.incoming-call-name {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.incoming-call-type {
+    font-size: 16px;
+    color: #aaa;
+    margin-bottom: 40px;
+}
+
+.incoming-call-buttons {
+    display: flex;
+    gap: 30px;
+}
+
+.incoming-accept-btn,
+.incoming-reject-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+.incoming-accept-btn {
+    background: #34c759;
+}
+
+.incoming-reject-btn {
+    background: #ff3b30;
+}
+
+.incoming-accept-btn:hover,
+.incoming-reject-btn:hover {
+    transform: scale(1.1);
+}
+
+
     </style>
 </head>
 <body>
@@ -4027,6 +4487,65 @@
         <div class="chats-list" id="chatsList"></div>
     </div>
 
+
+    <!-- INTERFACE CALL -->
+
+    <!-- ИНТЕРФЕЙС ЗВОНКА -->
+<div id="callInterface">
+    <div class="call-header">
+        <div class="call-contact-name" id="callContactName">Звонок</div>
+        <div class="call-status" id="callStatusText">Подключение...</div>
+        <div class="call-timer" id="callTimer">00:00</div>
+    </div>
+
+    <div class="call-video-container">
+        <video class="remote-call-video" id="remoteVideo" autoplay playsinline></video>
+        <div class="no-video-placeholder" id="noRemoteVideo">
+            <i class="fas fa-user"></i>
+        </div>
+        <video class="local-call-video" id="localCallVideo" autoplay playsinline muted></video>
+    </div>
+
+    <div class="ringing-overlay" id="ringingOverlay">
+        <div class="ringing-animation">
+            <i class="fas fa-phone-alt"></i>
+        </div>
+        <div class="ringing-text" id="ringingText">Звоним...</div>
+    </div>
+
+    <div class="call-controls">
+        <button class="call-control-btn" id="callMicBtn" onclick="toggleCallMute()">
+            <i class="fas fa-microphone"></i>
+        </button>
+        <button class="call-control-btn" id="callSpeakerBtn" onclick="toggleCallSpeaker()">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        <button class="call-control-btn end-call" onclick="endCall()">
+            <i class="fas fa-phone-slash"></i>
+        </button>
+        <button class="call-control-btn" id="callVideoBtn" onclick="toggleCallVideo()">
+            <i class="fas fa-video"></i>
+        </button>
+    </div>
+</div>
+
+<!-- МОДАЛКА ВХОДЯЩЕГО ЗВОНКА -->
+<div class="incoming-call-modal" id="incomingCallModal">
+    <div class="incoming-call-avatar" id="incomingCallAvatar">?</div>
+    <div class="incoming-call-name" id="incomingCallerName">Имя</div>
+    <div class="incoming-call-type" id="incomingCallType">Аудиозвонок</div>
+    <div class="incoming-call-buttons">
+        <button class="incoming-reject-btn" onclick="rejectIncomingCall()">
+            <i class="fas fa-phone-slash"></i>
+        </button>
+        <button class="incoming-accept-btn" onclick="acceptIncomingCall()">
+            <i class="fas fa-phone-alt"></i>
+        </button>
+    </div>
+</div>
+
+
+
     <!-- ОБЛАСТЬ ЧАТА -->
     <div class="chat-area" id="chatArea">
         <div class="chat-header-area">
@@ -4043,19 +4562,19 @@
                 </div>
             </div>
             <div class="chat-actions">
-                <button onclick="makeCall('audio')" id="audioCallBtn" style="display:none;">
-                    <i class="fas fa-phone"></i>
-                </button>
-                <button onclick="makeCall('video')" id="videoCallBtn" style="display:none;">
-                    <i class="fas fa-video"></i>
-                </button>
-                <button onclick="startGroupVideoCall()" id="groupVideoCallBtn" style="display:none;">
-                    <i class="fas fa-users-video"></i>
-                </button>
-                <button onclick="showChatMenu()">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-            </div>
+    <button onclick="makeCall('audio')" id="audioCallBtn" style="display: none;">
+        <i class="fas fa-phone"></i>
+    </button>
+    <button onclick="makeCall('video')" id="videoCallBtn" style="display: none;">
+        <i class="fas fa-video"></i>
+    </button>
+    <button onclick="startGroupVideoCall()" id="groupVideoCallBtn" style="display:none;">
+        <i class="fas fa-users-video"></i>
+    </button>
+    <button onclick="showChatMenu()">
+        <i class="fas fa-ellipsis-v"></i>
+    </button>
+</div>
         </div>
 
         <div class="messages-area" id="messagesArea">
@@ -4209,7 +4728,7 @@
     </div>
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО ДЛЯ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЕ -->
+
 <!-- МОДАЛЬНОЕ ОКНО ДЛЯ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЕ -->
 <div class="modal" id="tempModal">
     <div id="tempModalBody" style="width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; border-radius: 24px; animation: modalSlideIn 0.3s ease;">
@@ -8258,6 +8777,105 @@ document.getElementById('storyViewerModal').addEventListener('click', function(e
         return;
     }
 
+
+// chat.html - замените существующую функцию makeCall на эту:
+
+// Замените существующую функцию makeCall
+function makeCall(callType) {
+    if (!currentChat || currentChatType !== 'personal') {
+        showToast('Выберите пользователя для звонка');
+        return;
+    }
+
+    const targetId = currentChat.other_user_id || currentChat.id;
+
+    if (targetId === currentUser.id) {
+        showToast('Нельзя позвонить самому себе');
+        return;
+    }
+
+    // Устанавливаем имя контакта
+    document.getElementById('callContactName').textContent =
+        currentChat.name || 'Пользователь';
+
+    // Запускаем звонок
+    callIntegration.startCall(targetId, callType);
+}
+
+function startGroupVideoCall() {
+    if (!currentChat || currentChatType !== 'group') {
+        showToast('Групповые звонки доступны только в группах');
+        return;
+    }
+
+    // Открываем комнату для группового видео
+    fetch('/api/video/create_room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_type: 'video' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.open(
+                `/video/${data.room_id}`,
+                'NexgramGroupCall',
+                'width=1024,height=768'
+            );
+        }
+    });
+}
+
+function startGroupVideoCall() {
+    if (!currentChat || currentChatType !== 'group') {
+        alert('Групповые звонки доступны только в группах');
+        return;
+    }
+
+    // Создаем комнату для группового звонка
+    fetch('/api/video/create_room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_type: 'video' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            window.open(
+                `/video/${data.room_id}`,
+                'NexgramGroupCall',
+                'width=1024,height=768'
+            );
+        }
+    });
+}
+
+function showIncomingCallModal(data) {
+    const accept = confirm(
+        `Входящий ${data.call_type === 'video' ? 'видеозвонок' : 'звонок'} от ${data.caller_name}\n\nПринять?`
+    );
+
+    if (accept) {
+        // Открываем страницу звонка и принимаем
+        window.open(
+            `/call?action=accept&room=${data.room_id}&type=${data.call_type}`,
+            'NexgramCall',
+            'width=800,height=600'
+        );
+    } else {
+        // Отклоняем звонок
+        fetch('/api/update_call_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                call_id: data.call_id,
+                status: 'rejected'
+            })
+        });
+    }
+}
+
+
     // ===== ФИКС ДЛЯ ЛАЙКОВ И РЕАКЦИЙ В ИСТОРИЯХ =====
 // ===== ПОЛНЫЙ ФИКС КНОПОК В ИСТОРИЯХ =====
 (function() {
@@ -8474,5 +9092,8 @@ document.getElementById('storyViewerModal').addEventListener('click', function(e
 
 
 </script>
+
+<script src="{{ url_for('static', filename='js/call.js') }}"></script>
+
 </body>
 </html>

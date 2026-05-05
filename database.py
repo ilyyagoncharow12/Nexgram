@@ -2194,6 +2194,57 @@ def search_messages_in_chat(chat_id, user_id, query):
     conn.close()
     return  messages
 
+#----CALL----
+
+# database.py - добавьте в конец файла
+
+def create_call_room(initiator_id, receiver_id, call_type='audio'):
+    """Создает запись о звонке в БД"""
+    conn = get_db()
+    cursor = conn.cursor()
+    room_id = f"call_{initiator_id}_{receiver_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    cursor.execute('''
+        INSERT INTO calls (caller_id, receiver_id, call_type, status, created_at)
+        VALUES (?, ?, ?, 'ringing', ?)
+    ''', (initiator_id, receiver_id, call_type, get_moscow_time()))
+
+    call_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return call_id, room_id
+
+
+def update_call(call_id, status, duration=0):
+    """Обновляет статус звонка"""
+    conn = get_db()
+    cursor = conn.cursor()
+    if status == 'ended':
+        cursor.execute('''
+            UPDATE calls SET status = ?, duration = ? WHERE id = ?
+        ''', (status, duration, call_id))
+    else:
+        cursor.execute('''
+            UPDATE calls SET status = ? WHERE id = ?
+        ''', (status, call_id))
+    conn.commit()
+    conn.close()
+
+def add_call(caller_id, receiver_id, call_type, status):
+    """Добавляет запись о звонке"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO calls (caller_id, receiver_id, call_type, status, created_at)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (caller_id, receiver_id, call_type, status, get_moscow_time()))
+    conn.commit()
+    call_id = cursor.lastrowid
+    conn.close()
+    return call_id
+
+
 
 # Инициализация БД при импорте
 init_db()
