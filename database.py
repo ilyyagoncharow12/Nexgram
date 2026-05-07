@@ -2245,6 +2245,115 @@ def add_call(caller_id, receiver_id, call_type, status):
     return call_id
 
 
+# database.py - добавьте в конец файла
+
+def get_contact_with_name(user_id, contact_id):
+    """Получает контакт с пользовательским именем"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.*, cn.name as custom_name 
+        FROM contacts c
+        JOIN users u ON c.contact_id = u.id
+        LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
+        WHERE c.user_id = ? AND c.contact_id = ? AND u.is_deleted = 0
+    ''', (user_id, user_id, contact_id))
+    contact = cursor.fetchone()
+    conn.close()
+    return contact
+
+def get_contact_name(user_id, contact_id):
+    """Получает имя контакта (пользовательское или оригинальное)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result['name'] if result else None
+
+def is_contact(user_id, contact_id):
+    """Проверяет, есть ли пользователь в контактах"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def remove_contact(user_id, contact_id):
+    """Удаляет контакт"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    cursor.execute('DELETE FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    conn.commit()
+    conn.close()
+    return True
+
+
+# database.py - убедитесь что эти функции есть
+
+def is_contact(user_id, contact_id):
+    """Проверяет, есть ли пользователь в контактах"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+# database.py - проверьте эту функцию
+
+def get_contacts(user_id):
+    """Получает контакты пользователя с их именами"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.id, u.username, u.display_name, u.avatar, u.phone, u.unique_id,
+               cn.name as custom_name 
+        FROM contacts c
+        JOIN users u ON c.contact_id = u.id
+        LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
+        WHERE c.user_id = ? AND u.is_deleted = 0
+        ORDER BY COALESCE(cn.name, u.display_name, u.username)
+    ''', (user_id, user_id))
+    contacts = cursor.fetchall()
+    conn.close()
+    return contacts
+
+
+
+def get_contact_name(user_id, contact_id):
+    """Получает имя контакта (пользовательское или оригинальное)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT name FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    result = cursor.fetchone()
+    conn.close()
+    return result['name'] if result else None
+
+
+def remove_contact(user_id, contact_id):
+    """Удаляет контакт и его переименование"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    cursor.execute('DELETE FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                   (user_id, contact_id))
+    conn.commit()
+    conn.close()
+    return True
+
+
+
+
 
 # Инициализация БД при импорте
 init_db()

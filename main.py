@@ -1534,26 +1534,136 @@ def api_unpin_chat():
 
 
 # ---------------------- КОНТАКТЫ ----------------------
-@app.route('/api/get_contacts')
-def api_get_contacts():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
 
-    contacts = get_contacts(session['user_id'])
-    return jsonify([dict(c) for c in contacts])
+# main.py - ПОЛНОСТЬЮ ЗАМЕНИТЕ ВСЕ МАРШРУТЫ КОНТАКТОВ
+
+@app.route('/api/check_contact/<int:user_id>')
+def api_check_contact(user_id):
+    if 'user_id' not in session:
+        return jsonify({'is_contact': False, 'contact_name': None})
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (session['user_id'], user_id))
+    result = cursor.fetchone()
+    is_contact = result is not None
+
+    contact_name = None
+    if is_contact:
+        cursor.execute('SELECT name FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                       (session['user_id'], user_id))
+        name_result = cursor.fetchone()
+        contact_name = name_result['name'] if name_result else None
+
+    conn.close()
+
+    return jsonify({'is_contact': is_contact, 'contact_name': contact_name})
 
 
 @app.route('/api/add_contact', methods=['POST'])
 def api_add_contact():
     if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
+        return jsonify({'success': False}), 401
 
     data = request.get_json()
     contact_id = data.get('contact_id')
-    if add_contact(session['user_id'], contact_id):
-        return jsonify({'success': True})
-    return jsonify({'success': False}), 400
+    custom_name = data.get('name', '').strip()
 
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('INSERT OR IGNORE INTO contacts (user_id, contact_id) VALUES (?, ?)',
+                       (session['user_id'], contact_id))
+
+        if custom_name:
+            cursor.execute('INSERT OR REPLACE INTO contact_names (user_id, contact_id, name) VALUES (?, ?, ?)',
+                           (session['user_id'], contact_id, custom_name))
+
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False}), 500
+
+
+@app.route('/api/remove_contact', methods=['POST'])
+def api_remove_contact():
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+
+    data = request.get_json()
+    contact_id = data.get('contact_id')
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM contacts WHERE user_id = ? AND contact_id = ?',
+                   (session['user_id'], contact_id))
+    cursor.execute('DELETE FROM contact_names WHERE user_id = ? AND contact_id = ?',
+                   (session['user_id'], contact_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/rename_contact', methods=['POST'])
+def api_rename_contact():
+    if 'user_id' not in session:
+        return jsonify({'success': False}), 401
+
+    data = request.get_json()
+    contact_id = data.get('contact_id')
+    new_name = data.get('name', '').strip()
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR REPLACE INTO contact_names (user_id, contact_id, name) VALUES (?, ?, ?)',
+                   (session['user_id'], contact_id, new_name))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True})
+
+
+# main.py - добавьте этот маршрут
+
+# main.py - ДОБАВЬТЕ ЭТОТ МАРШРУТ ПРЯМО СЕЙЧАС
+
+@app.route('/api/get_contacts')
+def api_get_contacts():
+    if 'user_id' not in session:
+        return jsonify([])
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.id, u.username, u.display_name, u.avatar, u.phone, u.unique_id,
+               cn.name as custom_name 
+        FROM contacts c
+        JOIN users u ON c.contact_id = u.id
+        LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
+        WHERE c.user_id = ? AND u.is_deleted = 0
+        ORDER BY COALESCE(cn.name, u.display_name, u.username)
+    ''', (session['user_id'], session['user_id']))
+    contacts = cursor.fetchall()
+    conn.close()
+
+    result = []
+    for c in contacts:
+        result.append({
+            'id': c['id'],
+            'username': c['username'],
+            'display_name': c['display_name'],
+            'avatar': c['avatar'],
+            'phone': c['phone'],
+            'unique_id': c['unique_id'],
+            'custom_name': c['custom_name']
+        })
+
+    return jsonify(result)
 
 # ---------------------- ЗВОНКИ ----------------------
 @app.route('/api/make_call', methods=['POST'])
@@ -2062,6 +2172,15 @@ def api_get_call_info(room_id):
     if call_info:
         return jsonify(call_info)
     return jsonify({'error': 'Call not found'}), 404
+
+
+
+
+#------------------------КОНТАКТЫ ---------------------
+
+# main.py - добавьте эти маршруты
+
+
 
 
 # ---------------------- SOCKETIO ----------------------

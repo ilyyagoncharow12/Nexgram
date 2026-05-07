@@ -4441,6 +4441,31 @@
 }
 
 
+        /* Добавьте в секцию <style> в chat.html */
+
+.modal-input {
+    width: 100%;
+    background: #1c1c1e;
+    border: 1px solid #2c2c2e;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 16px;
+    font-family: 'Unbounded', cursive;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.modal-input:focus {
+    border-color: #007aff;
+    background: #2c2c2e;
+}
+
+.modal-input::placeholder {
+    color: #8e8e93;
+}
+
+
     </style>
 </head>
 <body>
@@ -5430,6 +5455,27 @@ function forwardMessageTo(messageId, targetId, targetType) {
                     currentChat.name = d.other_user.display_name || d.other_user.username;
                     currentChat.last_seen = d.other_user.last_seen;
 
+
+                     // Проверяем, есть ли пользовательское имя контакта
+    fetch(`/api/check_contact/${d.other_user.id}`)
+        .then(r => r.json())
+        .then(contactInfo => {
+            // Используем имя контакта если есть, иначе оригинальное
+            const displayName = contactInfo.contact_name ||
+                               d.other_user.display_name ||
+                               d.other_user.username;
+
+            currentChat.name = displayName;
+            document.getElementById('chatUserName').textContent = displayName;
+        })
+        .catch(() => {
+            // Если ошибка, используем оригинальное имя
+            currentChat.name = d.other_user.display_name || d.other_user.username;
+            document.getElementById('chatUserName').textContent = currentChat.name;
+        });
+
+
+
                     document.getElementById('chatUserName').textContent = currentChat.name;
                     document.getElementById('chatUserAvatar').innerHTML = d.other_user.avatar ?
                         `<img src="/${d.other_user.avatar}">` :
@@ -5468,6 +5514,8 @@ function forwardMessageTo(messageId, targetId, targetType) {
                     document.getElementById('audioCallBtn').style.display = 'none';
                     document.getElementById('videoCallBtn').style.display = 'none';
                     document.getElementById('groupVideoCallBtn').style.display = 'none';
+
+
 
                     if (d.can_post) {
                         document.getElementById('messageInputArea').style.display = 'flex';
@@ -7345,21 +7393,136 @@ function openUserProfileModal(userId) {
 
 
 function showUserMenu(userId) {
-    let html = `
-        <div style="padding: 20px;">
-            <div class="burger-item" onclick="shareContactWithChat(${userId}); closeModal('tempModal');">
-                <i class="fas fa-share-alt"></i>
-                <span>Поделиться контактом</span>
-            </div>
-            <div class="burger-divider"></div>
-            <div class="burger-item" onclick="closeModal('tempModal');">
-                <i class="fas fa-times"></i>
-                <span>Закрыть</span>
-            </div>
-        </div>
-    `;
-    showModal('Действия', html);
+    fetch('/api/check_contact/' + userId)
+    .then(r => r.json())
+    .then(data => {
+        let html = '';
+        if (data.is_contact) {
+            html += '<div class="burger-item" onclick="renameContactDialog(' + userId + '); closeModal(\'tempModal\');"><i class="fas fa-edit"></i><span>Переименовать контакт</span></div>';
+            html += '<div class="burger-divider"></div>';
+            html += '<div class="burger-item danger" onclick="removeContactById(' + userId + '); closeModal(\'tempModal\');"><i class="fas fa-user-minus"></i><span>Удалить из контактов</span></div>';
+        } else {
+            html += '<div class="burger-item" onclick="addContactDialog(' + userId + '); closeModal(\'tempModal\');"><i class="fas fa-user-plus"></i><span>Добавить в контакты</span></div>';
+        }
+        html += '<div class="burger-divider"></div>';
+        html += '<div class="burger-item" onclick="closeModal(\'tempModal\');"><i class="fas fa-times"></i><span>Закрыть</span></div>';
+
+        document.getElementById('tempModalBody').innerHTML = '<div style="padding:10px;">' + html + '</div>';
+        openModal('tempModal');
+    });
 }
+
+function addContactDialog(userId) {
+    fetch('/api/get_user_profile/' + userId)
+    .then(r => r.json())
+    .then(user => {
+        let html = '';
+        html += '<div style="background:#0f0f0f;border-radius:20px;color:white;">';
+        html += '<div style="display:flex;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2c2c2e;">';
+        html += '<button onclick="closeModal(\'tempModal\')" style="background:none;border:none;color:#8e8e93;font-size:16px;">Отмена</button>';
+        html += '<div style="font-size:18px;font-weight:600;">Новый контакт</div>';
+        html += '<button onclick="saveContact(' + userId + ')" style="background:none;border:none;color:#007aff;font-size:16px;font-weight:600;">Готово</button>';
+        html += '</div>';
+        html += '<div style="padding:20px;">';
+        html += '<div style="text-align:center;margin-bottom:20px;"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:inline-flex;align-items:center;justify-content:center;font-size:36px;color:white;">' + (user.display_name||'?')[0].toUpperCase() + '</div></div>';
+        html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#8e8e93;">Имя</div><input id="cfname" value="' + (user.display_name||'') + '" placeholder="Имя" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:12px;padding:12px;width:100%;color:white;font-size:16px;"></div>';
+        html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#8e8e93;">Фамилия</div><input id="clname" placeholder="Фамилия" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:12px;padding:12px;width:100%;color:white;font-size:16px;"></div>';
+        html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#8e8e93;">mobile</div><div style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:12px;padding:12px;color:#007aff;">' + (user.phone||'Скрыт') + '</div></div>';
+        html += '</div></div>';
+
+        document.getElementById('tempModalBody').innerHTML = html;
+        openModal('tempModal');
+    });
+}
+
+function saveContact(uid) {
+    let name = (document.getElementById('cfname').value + ' ' + document.getElementById('clname').value).trim();
+    if (!name) { alert('Введите имя'); return; }
+
+    fetch('/api/add_contact', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({contact_id: uid, name: name})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) { closeModal('tempModal'); alert('Готово!'); }
+    });
+}
+
+function renameContactDialog(uid) {
+    fetch('/api/get_user_profile/' + uid)
+    .then(r => r.json())
+    .then(user => {
+        fetch('/api/check_contact/' + uid)
+        .then(r => r.json())
+        .then(data => {
+            let cur = data.contact_name || user.display_name || '';
+            let parts = cur.split(' ');
+            let html = '';
+            html += '<div style="background:#0f0f0f;border-radius:20px;color:white;">';
+            html += '<div style="display:flex;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2c2c2e;">';
+            html += '<button onclick="closeModal(\'tempModal\')" style="background:none;border:none;color:#8e8e93;">Отмена</button>';
+            html += '<div style="font-size:18px;font-weight:600;">Изменить</div>';
+            html += '<button onclick="saveRename(' + uid + ')" style="background:none;border:none;color:#007aff;font-weight:600;">Готово</button>';
+            html += '</div><div style="padding:20px;">';
+            html += '<div style="text-align:center;margin-bottom:20px;"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:inline-flex;align-items:center;justify-content:center;font-size:36px;color:white;">' + cur[0].toUpperCase() + '</div></div>';
+            html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#8e8e93;">Имя</div><input id="cfname" value="' + (parts[0]||'') + '" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:12px;padding:12px;width:100%;color:white;font-size:16px;"></div>';
+            html += '<div style="margin-bottom:16px;"><div style="font-size:13px;color:#8e8e93;">Фамилия</div><input id="clname" value="' + (parts.slice(1).join(' ')||'') + '" style="background:#1c1c1e;border:1px solid #2c2c2e;border-radius:12px;padding:12px;width:100%;color:white;font-size:16px;"></div>';
+            html += '</div></div>';
+
+            document.getElementById('tempModalBody').innerHTML = html;
+            openModal('tempModal');
+        });
+    });
+}
+
+function saveRename(uid) {
+    let name = (document.getElementById('cfname').value + ' ' + document.getElementById('clname').value).trim();
+    if (!name) { alert('Введите имя'); return; }
+
+    fetch('/api/rename_contact', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({contact_id: uid, name: name})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) { closeModal('tempModal'); alert('Готово!'); }
+    });
+}
+
+function removeContactById(uid) {
+    if (!confirm('Удалить контакт?')) return;
+
+    fetch('/api/remove_contact', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({contact_id: uid})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) { closeModal('tempModal'); alert('Удален!'); }
+    });
+}
+
+// Загрузка списка контактов
+function loadContactsList() {
+    // Обновляем список контактов в бургер-меню
+    fetch('/api/get_contacts')
+        .then(r => r.json())
+        .then(contacts => {
+            // Сохраняем контакты глобально для использования в других местах
+            window.contactsData = contacts;
+            console.log('Contacts updated:', contacts.length);
+        })
+        .catch(err => console.error('Error loading contacts:', err));
+}
+
+
+
+
+
 
 
     // ===== МОЙ ПРОФИЛЬ =====
@@ -8171,28 +8334,272 @@ function openUserProfileModalFromStory(userId) {
 
     // ===== БУРГЕР-МЕНЮ ФУНКЦИИ =====
     function openContacts() {
-        closeBurgerMenu();
-        fetch('/api/get_contacts')
-            .then(r => r.json())
-            .then(c => {
-                let h = '<div class="members-list">';
-                c.forEach(i => {
-                    h += `
-                        <div class="member-item" onclick="openChat(${i.id}, 'personal');closeModal('tempModal');">
-                            <div class="member-avatar">
-                                ${i.avatar ? `<img src="/${i.avatar}">` : `<span>${i.username[0].toUpperCase()}</span>`}
-                            </div>
-                            <div class="member-info">
-                                <div class="member-name">${escapeHtml(i.display_name || i.username)}</div>
-                                <div class="member-role">@${escapeHtml(i.username)}</div>
-                            </div>
-                        </div>
-                    `;
+    closeBurgerMenu();
+
+    fetch('/api/get_contacts')
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(contacts) {
+            var html = '<div class="members-list">';
+
+            if (!contacts || contacts.length === 0) {
+                html += '<div class="member-item" style="text-align:center;padding:20px;">Нет контактов</div>';
+            } else {
+                contacts.forEach(function(contact) {
+                    var displayName = contact.custom_name || contact.display_name || contact.username;
+
+                    html += '<div class="member-item" style="display:flex;align-items:center;justify-content:space-between;">';
+                    html += '<div onclick="openChat(' + contact.id + ',\'personal\');closeModal(\'tempModal\');" style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer;">';
+                    html += '<div class="member-avatar">';
+                    if (contact.avatar) {
+                        html += '<img src="/' + contact.avatar + '">';
+                    } else {
+                        html += '<span>' + displayName.charAt(0).toUpperCase() + '</span>';
+                    }
+                    html += '</div>';
+                    html += '<div class="member-info">';
+                    html += '<div class="member-name">' + escapeHtml(displayName) + '</div>';
+                    html += '<div class="member-role">@' + escapeHtml(contact.username) + '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<button onclick="event.stopPropagation();showContactActions(' + contact.id + ');" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:8px;">';
+                    html += '<i class="fas fa-ellipsis-h"></i>';
+                    html += '</button>';
+                    html += '</div>';
                 });
-                h += '</div>';
-                showModal('Контакты', h);
-            });
+            }
+
+            html += '</div>';
+            showModal('Контакты', html);
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            showModal('Контакты', '<div class="members-list"><div class="member-item">Ошибка загрузки</div></div>');
+        });
+}
+
+
+function showContactActions(contactId) {
+    var html = '';
+    html += '<div class="burger-item" onclick="renameContactDialog(' + contactId + ');closeModal(\'tempModal\');">';
+    html += '<i class="fas fa-edit"></i><span>Переименовать контакт</span></div>';
+    html += '<div class="burger-divider"></div>';
+    html += '<div class="burger-item danger" onclick="removeContactById(' + contactId + ');closeModal(\'tempModal\');">';
+    html += '<i class="fas fa-user-minus"></i><span>Удалить контакт</span></div>';
+
+    document.getElementById('tempModalBody').innerHTML = '<div style="padding:10px;">' + html + '</div>';
+    openModal('tempModal');
+}
+
+// Меню в профиле пользователя (кнопка "ещё")
+function showUserMenu(userId) {
+    fetch('/api/check_contact/' + userId)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            var html = '';
+
+            if (data.is_contact) {
+                html += '<div class="burger-item" onclick="renameContactDialog(' + userId + ');closeModal(\'tempModal\');">';
+                html += '<i class="fas fa-edit"></i><span>Переименовать контакт</span></div>';
+                html += '<div class="burger-divider"></div>';
+                html += '<div class="burger-item danger" onclick="removeContactById(' + userId + ');closeModal(\'tempModal\');">';
+                html += '<i class="fas fa-user-minus"></i><span>Удалить из контактов</span></div>';
+            } else {
+                html += '<div class="burger-item" onclick="addContactDialog(' + userId + ');closeModal(\'tempModal\');">';
+                html += '<i class="fas fa-user-plus"></i><span>Добавить в контакты</span></div>';
+            }
+
+            html += '<div class="burger-divider"></div>';
+            html += '<div class="burger-item" onclick="closeModal(\'tempModal\');">';
+            html += '<i class="fas fa-times"></i><span>Закрыть</span></div>';
+
+            document.getElementById('tempModalBody').innerHTML = '<div style="padding:10px;">' + html + '</div>';
+            openModal('tempModal');
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
+}
+
+
+function addContactDialog(userId) {
+    fetch('/api/get_user_profile/' + userId)
+    .then(r => r.json())
+    .then(user => {
+        let h = '<div class="user-profile-body">';
+        h += '<div class="profile-field"><label>Имя</label><input type="text" id="contactFirstName" class="modal-input" value="' + escapeHtml(user.display_name || '') + '" placeholder="Имя"></div>';
+        h += '<div class="profile-field"><label>Фамилия</label><input type="text" id="contactLastName" class="modal-input" placeholder="Фамилия"></div>';
+        h += '<div class="user-profile-info-row"><i class="fas fa-phone"></i><span>' + (user.phone || 'Номер скрыт') + '</span></div>';
+        h += '<div class="user-profile-buttons">';
+        h += '<button class="user-profile-btn user-profile-btn-secondary" onclick="closeModal(\'tempModal\');">Отмена</button>';
+        h += '<button class="user-profile-btn user-profile-btn-primary" onclick="saveNewContact(' + userId + ')">Добавить</button>';
+        h += '</div></div>';
+        showModal('Новый контакт', h);
+    });
+}
+
+// Сохранение нового контакта
+function saveNewContact(userId) {
+    var firstName = document.getElementById('cfn').value.trim();
+    var lastName = document.getElementById('cln').value.trim();
+    var fullName = (firstName + ' ' + lastName).trim();
+
+    if (!fullName) {
+        alert('Введите имя');
+        return;
     }
+
+    fetch('/api/add_contact', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contact_id: userId,
+            name: fullName
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            closeModal('tempModal');
+            alert('Контакт добавлен!');
+        } else {
+            alert('Ошибка при добавлении');
+        }
+    });
+}
+
+// Диалог переименования контакта
+function renameContactDialog(userId) {
+    fetch('/api/get_user_profile/' + userId)
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(user) {
+            fetch('/api/check_contact/' + userId)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    var currentName = data.contact_name || user.display_name || '';
+                    var nameParts = currentName.split(' ');
+                    var firstName = nameParts[0] || '';
+                    var lastName = nameParts.slice(1).join(' ') || '';
+
+                    var html = '<div class="user-profile-body">';
+
+                    html += '<div class="profile-field">';
+                    html += '<label>Имя</label>';
+                    html += '<input type="text" id="cfn" class="modal-input" value="' + firstName + '" placeholder="Имя">';
+                    html += '</div>';
+
+                    html += '<div class="profile-field">';
+                    html += '<label>Фамилия</label>';
+                    html += '<input type="text" id="cln" class="modal-input" value="' + lastName + '" placeholder="Фамилия">';
+                    html += '</div>';
+
+                    html += '<div class="user-profile-buttons">';
+                    html += '<button class="user-profile-btn user-profile-btn-secondary" onclick="closeModal(\'tempModal\');">Отмена</button>';
+                    html += '<button class="user-profile-btn user-profile-btn-primary" onclick="saveRenameContact(' + userId + ')">Сохранить</button>';
+                    html += '</div>';
+
+                    html += '</div>';
+
+                    showModal('Изменить контакт', html);
+                });
+        });
+}
+
+// Сохранение переименования
+function saveRenameContact(userId) {
+    var firstName = document.getElementById('cfn').value.trim();
+    var lastName = document.getElementById('cln').value.trim();
+    var fullName = (firstName + ' ' + lastName).trim();
+
+    if (!fullName) {
+        alert('Введите имя');
+        return;
+    }
+
+    fetch('/api/rename_contact', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contact_id: userId,
+            name: fullName
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            closeModal('tempModal');
+            alert('Контакт переименован!');
+
+            // Обновляем имя в шапке чата если это текущий чат
+            if (currentChat && currentChat.other_user_id == userId) {
+                currentChat.name = fullName;
+                document.getElementById('chatUserName').textContent = fullName;
+            }
+        } else {
+            alert('Ошибка при переименовании');
+        }
+    });
+}
+
+// Удаление контакта
+function removeContactById(userId) {
+    if (!confirm('Удалить контакт? Имя вернется к оригинальному.')) {
+        return;
+    }
+
+    fetch('/api/remove_contact', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            contact_id: userId
+        })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            closeModal('tempModal');
+            alert('Контакт удален!');
+
+            // Возвращаем оригинальное имя в чате
+            fetch('/api/get_user_profile/' + userId)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(user) {
+                    if (currentChat && currentChat.other_user_id == userId) {
+                        var originalName = user.display_name || user.username;
+                        currentChat.name = originalName;
+                        document.getElementById('chatUserName').textContent = originalName;
+                    }
+                });
+        } else {
+            alert('Ошибка при удалении');
+        }
+    });
+}
+
+
+
+
 
     function openCalls() {
         closeBurgerMenu();
