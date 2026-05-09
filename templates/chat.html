@@ -1020,6 +1020,28 @@
         }
 
 /* ===== БУРГЕР МЕНЮ ===== */
+/* ===== НОВЫЙ ДИЗАЙН БУРГЕР-МЕНЮ (90° УГЛЫ) ===== */
+
+.burger-menu {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 320px;
+    height: 100vh;
+    background: var(--bg-secondary);
+    z-index: 1000;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    border-radius: 0 !important; /* 90° углы */
+    box-shadow: 2px 0 20px rgba(0,0,0,0.1);
+}
+
+.burger-menu.active {
+    left: 0;
+}
+
 .burger-overlay {
     position: fixed;
     top: 0;
@@ -1027,7 +1049,6 @@
     right: 0;
     bottom: 0;
     background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(4px);
     z-index: 999;
     display: none;
 }
@@ -1036,58 +1057,41 @@
     display: block;
 }
 
-.burger-menu {
-    position: fixed;
-    top: 0;
-    left: -320px;
-    width: 320px;
-    height: 100vh;
-    max-height: 100vh;
-    background: var(--bg-secondary);
-    backdrop-filter: blur(20px);
-    z-index: 1000;
-    transition: left 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    border-radius: 0 20px 20px 0;
-    border-right: 1px solid var(--border-color);
-    overflow: hidden !important;
-}
-
-.burger-menu.active {
-    left: 0;
-}
-
+/* --- Шапка с профилем --- */
 .burger-header {
-    padding: 16px 16px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 20px 16px;
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
-    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+    border-radius: 0 !important;
+}
+
+.burger-header:hover {
+    background: var(--bg-hover);
 }
 
 .burger-avatar {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
     background: var(--primary-gradient);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
     overflow: hidden;
-    flex-shrink: 0;
+    border-radius: 0 !important; /* 90° углы */
 }
 
 .burger-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 0 !important;
 }
 
 .burger-user-info {
@@ -1105,21 +1109,138 @@
 }
 
 .burger-user-username {
-    color: var(--text-muted);
-    font-size: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .burger-user-id {
+    font-size: 11px;
     color: var(--text-muted);
-    font-size: 10px;
     margin-top: 2px;
 }
 
+.burger-arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* --- Блок "Аккаунты" --- */
+.burger-accounts {
+    display: flex;
+    gap: 10px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0 !important;
+}
+
+.burger-accounts::-webkit-scrollbar {
+    display: none;
+}
+
+.account-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    min-width: 60px;
+    padding: 4px;
+    transition: background 0.15s;
+    border-radius: 0 !important;
+}
+
+.account-item:hover {
+    background: var(--bg-hover);
+}
+
+.account-item.active {
+    background: var(--bg-hover);
+}
+
+.account-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+.account-avatar {
+    width: 44px;
+    height: 44px;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    overflow: hidden;
+    border-radius: 0 !important;
+}
+
+.account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0 !important;
+}
+
+.account-name {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    max-width: 56px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Кнопка "Добавить аккаунт" */
+.account-add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    border: 2px dashed var(--primary-color);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+    border-radius: 0 !important;
+}
+
+.account-add:hover {
+    background: var(--bg-hover);
+}
+
+.account-add-icon {
+    font-size: 18px;
+    color: var(--primary-color);
+}
+
+/* --- Список пунктов меню --- */
 .burger-menu-items {
     flex: 1;
-    padding: 8px 0;
+    padding: 4px 0;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+.burger-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 8px 16px 4px;
+    letter-spacing: 0.5px;
 }
 
 .burger-item {
@@ -1129,51 +1250,104 @@
     padding: 10px 16px;
     cursor: pointer;
     color: var(--text-primary);
-    border-radius: 10px;
-    margin: 2px 10px;
-    transition: all var(--transition-fast);
+    transition: background 0.15s;
+    border-radius: 0 !important;
 }
 
 .burger-item:hover {
     background: var(--bg-hover);
 }
 
-.burger-item i {
+.burger-item-icon {
     width: 24px;
-    text-align: center;
-    color: var(--primary-color);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 16px;
+    color: var(--text-secondary);
     flex-shrink: 0;
 }
 
 .burger-item span {
-    font-size: 14px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 15px;
+    flex: 1;
+}
+
+.burger-item .badge {
+    background: var(--primary-color);
+    color: white;
+    font-size: 11px;
+    padding: 1px 8px;
+    font-weight: 600;
 }
 
 .burger-item.danger {
     color: var(--danger-color);
 }
 
-.burger-item.danger i {
+.burger-item.danger .burger-item-icon {
     color: var(--danger-color);
 }
 
+/* Разделитель */
 .burger-divider {
     height: 1px;
     background: var(--border-color);
-    margin: 8px 14px;
+    margin: 4px 16px;
     flex-shrink: 0;
 }
 
+/* --- Футер --- */
 .burger-footer {
-    padding: 16px;
+    padding: 12px 16px;
     text-align: center;
     font-size: 10px;
     color: var(--text-muted);
     border-top: 1px solid var(--border-color);
     flex-shrink: 0;
+    line-height: 1.4;
+    border-radius: 0 !important;
+}
+
+/* Переключатель темы */
+.theme-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 0 !important;
+}
+
+.theme-toggle-item:hover {
+    background: var(--bg-hover);
+}
+
+.theme-toggle-item .left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.theme-toggle-item .left i {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.theme-toggle-item .left span {
+    font-size: 15px;
+    color: var(--text-primary);
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .burger-menu {
+        width: 100%;
+        max-width: 320px;
+        left: -100%;
+    }
 }
 
         /* ===== МОДАЛЬНЫЕ ОКНА ===== */
@@ -4659,79 +4833,119 @@
 </div>
 
 <!-- БУРГЕР МЕНЮ -->
+<!-- БУРГЕР МЕНЮ (НОВЫЙ ДИЗАЙН) -->
 <div class="burger-overlay" id="burgerOverlay" onclick="closeBurgerMenu()"></div>
 <div class="burger-menu" id="burgerMenu">
+    <!-- Шапка с профилем (данные подставляются через Jinja) -->
     <div class="burger-header" onclick="openMyProfile()">
         <div class="burger-avatar" id="burgerAvatar">
-            <span>{{ user['display_name'][0].upper() if user['display_name'] else user['username'][0].upper() }}</span>
+            <!-- Картинка или буква будут подставлены динамически -->
+            <img src="{{ user['avatar'] or '/static/avatar-swg/avatar1.jpg' }}"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                 style="width: 100%; height: 100%; object-fit: cover;">
+            <span style="display: none; font-size: 20px; font-weight: 600; color: white;">
+                {{ user['display_name'][0].upper() if user['display_name'] else user['username'][0].upper() }}
+            </span>
         </div>
         <div class="burger-user-info">
-            <div class="burger-user-name" id="burgerUserName">{{ user['display_name'] or user['username'] }}</div>
+            <div class="burger-user-name" id="burgerUserName">
+                {{ user['display_name'] or user['username'] }}
+            </div>
             <div class="burger-user-username">@{{ user['username'] }}</div>
             <div class="burger-user-id">ID: {{ user['unique_id'] }}</div>
         </div>
-    </div>
-    <div class="burger-menu-items">
-        <div class="burger-item" onclick="openMyProfile()">
-            <i class="fas fa-user"></i>
-            <span>Мой профиль</span>
+        <div class="burger-arrow">
+            <i class="fas fa-chevron-right"></i>
         </div>
+    </div>
+
+    <!-- Строка аккаунтов -->
+    <div class="burger-accounts" id="burgerAccounts">
+        <!-- Активный аккаунт (данные будут подставляться через JS) -->
+        <!-- Пример структуры без данных -->
+        <div class="account-item active" data-user-id="{{ user['id'] }}">
+            <div class="account-avatar" style="background: var(--primary-gradient);">
+                <span>{{ user['display_name'][0].upper() if user['display_name'] else user['username'][0].upper() }}</span>
+            </div>
+            <div class="account-name">{{ user['display_name'] or user['username'] }}</div>
+        </div>
+
+        <!-- Кнопка "Добавить аккаунт" -->
+        <div class="account-add" onclick="openAddAccountModal()">
+            <div class="account-add-icon"><i class="fas fa-plus"></i></div>
+        </div>
+    </div>
+
+    <!-- Список пунктов (без данных) -->
+    <div class="burger-menu-items">
+        <div class="burger-group-label">Основное</div>
         <div class="burger-item" onclick="openContacts()">
-            <i class="fas fa-address-book"></i>
+            <div class="burger-item-icon"><i class="fas fa-user-friends"></i></div>
             <span>Контакты</span>
+            <span class="badge" id="contactsBadge" style="display:none;">0</span>
         </div>
         <div class="burger-item" onclick="openCalls()">
-            <i class="fas fa-phone"></i>
+            <div class="burger-item-icon"><i class="fas fa-phone-alt"></i></div>
             <span>Звонки</span>
         </div>
         <div class="burger-item" onclick="openFavorites()">
-            <i class="fas fa-star"></i>
+            <div class="burger-item-icon"><i class="fas fa-bookmark"></i></div>
             <span>Избранное</span>
         </div>
         <div class="burger-item" onclick="openBlockedUsers()">
-            <i class="fas fa-ban"></i>
+            <div class="burger-item-icon"><i class="fas fa-ban"></i></div>
             <span>Заблокированные</span>
         </div>
+
+        <div class="burger-divider"></div>
+        <div class="burger-group-label">Создать</div>
         <div class="burger-item" onclick="createGroup()">
-            <i class="fas fa-users"></i>
+            <div class="burger-item-icon"><i class="fas fa-users"></i></div>
             <span>Создать группу</span>
         </div>
         <div class="burger-item" onclick="createChannel()">
-            <i class="fas fa-bullhorn"></i>
+            <div class="burger-item-icon"><i class="fas fa-bullhorn"></i></div>
             <span>Создать канал</span>
         </div>
+
         <div class="burger-divider"></div>
+        <div class="burger-group-label">Настройки</div>
         <div class="burger-item" onclick="openSettings()">
-            <i class="fas fa-cog"></i>
+            <div class="burger-item-icon"><i class="fas fa-cog"></i></div>
             <span>Настройки</span>
         </div>
         <div class="burger-item" onclick="openAppearance()">
-            <i class="fas fa-palette"></i>
+            <div class="burger-item-icon"><i class="fas fa-palette"></i></div>
             <span>Оформление</span>
         </div>
         <div class="burger-item" onclick="openPrivacy()">
-            <i class="fas fa-lock"></i>
+            <div class="burger-item-icon"><i class="fas fa-lock"></i></div>
             <span>Конфиденциальность</span>
         </div>
         <div class="burger-item" onclick="openSessions()">
-            <i class="fas fa-shield-alt"></i>
+            <div class="burger-item-icon"><i class="fas fa-shield-alt"></i></div>
             <span>Активные сессии</span>
         </div>
+
         <div class="burger-divider"></div>
-        <div class="burger-item" onclick="toggleNightMode()">
-            <i class="fas fa-moon" id="nightModeIcon"></i>
-            <span id="nightModeText">Ночная тема</span>
-            <label class="switch" style="margin-left: auto;">
+        <div class="theme-toggle-item" onclick="toggleNightMode()">
+            <div class="left">
+                <i class="fas fa-moon" id="nightModeIcon"></i>
+                <span id="nightModeText">Ночная тема</span>
+            </div>
+            <label class="switch" style="margin: 0;">
                 <input type="checkbox" id="nightModeToggle" onchange="toggleNightMode()">
                 <span class="slider round"></span>
             </label>
         </div>
+
         <div class="burger-divider"></div>
         <div class="burger-item danger" onclick="logout()">
-            <i class="fas fa-sign-out-alt"></i>
+            <div class="burger-item-icon"><i class="fas fa-sign-out-alt"></i></div>
             <span>Выйти</span>
         </div>
     </div>
+
     <div class="burger-footer">
         Nexgram v3.5<br>
         ID: {{ user['unique_id'] }}
@@ -9496,6 +9710,170 @@ function showIncomingCallModal(data) {
         return;
     }
 }, true); // true = фаза перехвата (capture phase)
+
+
+// ===== УПРАВЛЕНИЕ АККАУНТАМИ =====
+
+// Открыть модалку добавления аккаунта
+function openAddAccountModal() {
+    closeBurgerMenu();
+    let html = `
+        <div style="padding: 20px; color: white;">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center;">Добавить аккаунт</div>
+            <div class="profile-field">
+                <label>Номер телефона</label>
+                <input type="tel" id="addPhone" class="modal-input" placeholder="+7 999 123 45 67">
+            </div>
+            <div class="profile-field">
+                <label>Пароль</label>
+                <input type="password" id="addPassword" class="modal-input" placeholder="••••••••">
+            </div>
+            <div class="user-profile-buttons">
+                <button class="user-profile-btn user-profile-btn-secondary" onclick="closeModal('tempModal')">Отмена</button>
+                <button class="user-profile-btn user-profile-btn-primary" onclick="addNewAccount()">Войти</button>
+            </div>
+        </div>
+    `;
+    showModal('Добавить аккаунт', html);
+}
+
+
+
+
+
+// Переключение на другой аккаунт
+function switchToAccount(userId) {
+    // Если уже на этом аккаунте — просто закрываем меню
+    if (userId == currentUser.id) {
+        closeBurgerMenu();
+        return;
+    }
+
+    fetch('/api/auth/switch_account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Перезагружаем страницу — сессия уже обновлена
+            location.reload();
+        } else {
+            alert('Ошибка переключения: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(() => alert('Ошибка соединения с сервером'));
+}
+
+
+// ===== ПРОСТОЙ ВЫВОД АККАУНТОВ =====
+function loadAccountsManually() {
+    const container = document.getElementById('burgerAccounts');
+    if (!container) return;
+
+    // Сначала получаем текущего пользователя
+    const currentId = currentUser.id;
+
+    // Получаем список привязанных аккаунтов
+    fetch('/api/auth/linked_accounts')
+        .then(r => r.json())
+        .then(accounts => {
+            let html = '';
+
+            // ВСЕГДА показываем текущий аккаунт первым (активным)
+            html += `
+                <div class="account-item active" data-user-id="${currentId}" onclick="switchToAccount(${currentId})">
+                    <div class="account-avatar" style="background: var(--primary-gradient);">
+                        <span>${currentUser.display_name[0].toUpperCase()}</span>
+                    </div>
+                    <div class="account-name">${currentUser.display_name}</div>
+                </div>
+            `;
+
+            // Добавляем привязанные аккаунты
+            accounts.forEach(acc => {
+                // Если это не текущий аккаунт — показываем
+                if (acc.id !== currentId) {
+                    const letter = (acc.display_name || acc.username || '?')[0].toUpperCase();
+                    html += `
+                        <div class="account-item" onclick="switchToAccount(${acc.id})">
+                            <div class="account-avatar" style="background: var(--primary-gradient);">
+                                ${acc.avatar ? `<img src="/${acc.avatar}">` : `<span>${letter}</span>`}
+                            </div>
+                            <div class="account-name">${acc.display_name || acc.username}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            // Кнопка добавления
+            html += `
+                <div class="account-add" onclick="openAddAccountModal()">
+                    <div class="account-add-icon"><i class="fas fa-plus"></i></div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        })
+        .catch(err => {
+            console.error('Ошибка загрузки аккаунтов:', err);
+            // Если ошибка, показываем только текущий
+            container.innerHTML = `
+                <div class="account-item active" data-user-id="${currentId}">
+                    <div class="account-avatar" style="background: var(--primary-gradient);">
+                        <span>${currentUser.display_name[0].toUpperCase()}</span>
+                    </div>
+                    <div class="account-name">${currentUser.display_name}</div>
+                </div>
+                <div class="account-add" onclick="openAddAccountModal()">
+                    <div class="account-add-icon"><i class="fas fa-plus"></i></div>
+                </div>
+            `;
+        });
+}
+
+// Загружаем при старте
+document.addEventListener('DOMContentLoaded', function() {
+    loadAccountsManually();
+});
+
+
+    function addNewAccount() {
+    const phone = document.getElementById('addPhone').value.trim();
+    const password = document.getElementById('addPassword').value;
+
+    if (!phone || !password) {
+        alert('Заполните все поля');
+        return;
+    }
+
+    fetch('/api/auth/add_account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            phone: phone,
+            password: password,
+            current_user_id: currentUser.id
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal('tempModal');
+            alert('✅ Аккаунт добавлен!');
+            location.reload();
+        } else {
+            alert('❌ Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('💥 Ошибка запроса:', error);
+        alert('Ошибка соединения с сервером: ' + error.message);
+    });
+}
+
+
 
 
 </script>

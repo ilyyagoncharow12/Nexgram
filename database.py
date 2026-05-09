@@ -72,6 +72,20 @@ def init_db():
         )
     ''')
 
+    # В init_db() добавьте эту таблицу:
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS linked_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            master_user_id INTEGER NOT NULL,
+            linked_user_id INTEGER NOT NULL,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+            UNIQUE(master_user_id, linked_user_id),
+            FOREIGN KEY (master_user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (linked_user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+
     # Таблица messages
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS messages (
@@ -131,6 +145,9 @@ def init_db():
             created_at DATETIME DEFAULT (datetime('now', '+3 hours'))
         )
     ''')
+
+
+
 
     # Таблица calls
     cursor.execute('''
@@ -375,6 +392,7 @@ def init_db():
             UNIQUE(user_id, blocked_user_id)
         )
     ''')
+
 
     # Таблица story_reactions
     cursor.execute('''
@@ -2354,6 +2372,78 @@ def remove_contact(user_id, contact_id):
 
 
 
+
+# ===== МУЛЬТИАККАУНТЫ =====
+
+def link_account(master_user_id, linked_user_id):
+    """Привязывает аккаунт к мастер-аккаунту"""
+    print(f"🔗 Linking {linked_user_id} to {master_user_id}")
+
+    if master_user_id == linked_user_id:
+        print("❌ Cannot link to self")
+        return False
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT OR IGNORE INTO linked_accounts (master_user_id, linked_user_id)
+            VALUES (?, ?)
+        ''', (master_user_id, linked_user_id))
+        conn.commit()
+        print(f"✅ Link successful")
+        return True
+    except Exception as e:
+        print(f"❌ Error linking account: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def get_linked_accounts(user_id):
+    """Возвращает список привязанных аккаунтов"""
+    print(f"🔍 Getting linked accounts for {user_id}")
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT u.id, u.unique_id, u.username, u.display_name, u.avatar
+            FROM linked_accounts la
+            JOIN users u ON la.linked_user_id = u.id
+            WHERE la.master_user_id = ? AND u.is_deleted = 0
+            ORDER BY la.created_at DESC
+        ''', (user_id,))
+        accounts = cursor.fetchall()
+        print(f"✅ Found {len(accounts)} accounts")
+        return accounts
+    except Exception as e:
+        print(f"❌ Error getting linked accounts: {e}")
+        return []
+    finally:
+        conn.close()
+
+
+def get_master_account(user_id):
+    """Возвращает мастер-аккаунт для данного пользователя"""
+    print(f"🔍 Getting master account for {user_id}")
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT master_user_id FROM linked_accounts 
+            WHERE linked_user_id = ?
+        ''', (user_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result:
+            print(f"✅ Master account found: {result['master_user_id']}")
+            return result['master_user_id']
+        print(f"✅ No master found, returning self: {user_id}")
+        return user_id
+    except Exception as e:
+        print(f"❌ Error getting master account: {e}")
+        return user_id
 
 # Инициализация БД при импорте
 init_db()

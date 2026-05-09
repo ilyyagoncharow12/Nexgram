@@ -49,6 +49,13 @@ app.config['SECRET_KEY'] = 'nexgram-secret-key-v3'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # False для localhost
+app.config['SESSION_PERMANENT'] = True
+
+
+
 
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
 # Инициализация WebRTC менеджера
@@ -99,10 +106,16 @@ def complete_login(user, remember=False):
     if remember:
         session.permanent = True
 
+    # ЯВНО СОХРАНЯЕМ СЕССИЮ
+    session.modified = True
+
     update_last_seen(user['id'])
     session_token = str(uuid.uuid4())
     add_session(user['id'], session_token, request.headers.get('User-Agent', 'Unknown'), request.remote_addr)
     session['session_token'] = session_token
+
+    print(f"✅ User logged in: {user['id']}, session: {session}")
+
     return redirect(url_for('chat_page'))
 
 
@@ -2054,6 +2067,101 @@ def api_add_to_playlist_from_message():
     except Exception as e:
         print(f"Error adding to playlist: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# Замените предыдущие маршруты на эти:
+
+@app.route('/api/auth/add_account', methods=['POST'])
+def api_add_account():
+    """Привязка аккаунта к мастер-аккаунту"""
+    data = request.get_json()
+    phone = data.get('phone')
+    password = data.get('password')
+    master_id = data.get('current_user_id')
+
+    user = verify_user(phone, password)
+    if not user:
+        return jsonify({'success': False, 'error': 'Неверный номер или пароль'}), 401
+
+    if user['id'] == master_id:
+        return jsonify({'success': False, 'error': 'Нельзя привязать свой же аккаунт'}), 400
+
+    # Сохраняем в БД
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR IGNORE INTO linked_accounts (master_user_id, linked_user_id)
+        VALUES (?, ?)
+    ''', (master_id, user['id']))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'user_id': user['id']})
+
+
+@app.route('/api/auth/linked_accounts')
+def api_linked_accounts():
+    if 'user_id' not in session:
+        return jsonify([])
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.id, u.username, u.display_name, u.avatar
+        FROM linked_accounts la
+        JOIN users u ON la.linked_user_id = u.id
+        WHERE la.master_user_id = ?
+        ORDER BY la.created_at DESC
+    ''', (session['user_id'],))
+    accounts = cursor.fetchall()
+    conn.close()
+
+    return jsonify([dict(acc) for acc in accounts])
+
+
+@app.route('/api/auth/switch_account', methods=['POST'])
+def api_switch_account():
+    """Переключение на привязанный аккаунт"""
+    data = request.get_json()
+    target_id = data.get('user_id')
+
+    # Получаем пользователя
+    user = get_user_by_id(target_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'Пользователь не найден'}), 404
+
+    # Обновляем сессию
+    session['user_id'] = user['id']
+    session['unique_id'] = user['unique_id']
+    session['username'] = user['username']
+    session['display_name'] = user['display_name'] or user['username']
+    session['phone'] = user['phone']
+    session.modified = True
+
+    return jsonify({'success': True})
+
+
+@app.route('/auth/auto_login')
+def auto_login():
+    """Автоматический вход после переключения"""
+    if 'switch_to_id' not in session:
+        return redirect(url_for('auth'))
+
+    user_id = session['switch_to_id']
+    user = get_user_by_id(user_id)
+    if not user:
+        session.clear()
+        return redirect(url_for('auth'))
+
+    return complete_login(user, True)
+
+
+
+@app.route('/api/check_session')
+def check_session():
+    if 'user_id' in session:
+        return jsonify({'logged_in': True, 'user_id': session['user_id']})
+    return jsonify({'logged_in': False})
 
 
 # main.py - добавьте эти маршруты
