@@ -5409,6 +5409,855 @@
     display: none;
 }
 
+
+
+
+/* ===== ОФОРМЛЕНИЕ — ШИРОКОФОРМАТНАЯ МОДАЛКА 16:9 ===== */
+
+/* Сама модалка */
+.appearance-modal .modal-content {
+    background: #0f0f0f !important;
+    border-radius: 24px;
+    overflow: hidden;
+    color: white;
+    width: 100%;
+    max-width: 900px !important;
+    height: 506px !important; /* 900 / 16 * 9 = 506 */
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Заголовок */
+.appearance-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #2c2c2e;
+    background: #0f0f0f;
+    flex-shrink: 0;
+}
+
+.appearance-modal .modal-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.appearance-modal .modal-header .close-btn {
+    background: none;
+    border: none;
+    color: #8e8e93;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.appearance-modal .modal-header .close-btn:hover {
+    background: #1c1c1e;
+    color: white;
+}
+
+/* Тело — две колонки без скролла */
+.appearance-modal .modal-body {
+    padding: 16px 20px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ===== ЛЕВАЯ КОЛОНКА: ПРЕДПРОСМОТР ЧАТА ===== */
+
+.preview-chat-container {
+    background: #0a0a0a;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #2c2c2e;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-chat-header {
+    padding: 10px 14px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2c2c2e;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.preview-chat-header .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+}
+
+.preview-chat-header .info {
+    flex: 1;
+}
+
+.preview-chat-header .name {
+    font-weight: 600;
+    font-size: 13px;
+    color: white;
+}
+
+.preview-chat-header .status {
+    font-size: 10px;
+    color: #8e8e93;
+}
+
+.preview-messages-area {
+    flex: 1;
+    padding: 12px;
+    overflow-y: auto;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.preview-messages-area::-webkit-scrollbar {
+    width: 3px;
+}
+
+.preview-messages-area::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.preview-messages-area::-webkit-scrollbar-thumb {
+    background: #007aff;
+    border-radius: 10px;
+}
+
+.preview-msg {
+    max-width: 80%;
+    padding: 6px 10px;
+    border-radius: var(--bubble-radius);
+    font-size: 13px;
+    line-height: 1.3;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.preview-msg.outgoing {
+    align-self: flex-end;
+    background: var(--primary-color);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.preview-msg.incoming {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.preview-msg .meta {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 8px;
+    opacity: 0.7;
+}
+
+.preview-msg.outgoing .meta {
+    color: rgba(255,255,255,0.7);
+}
+
+.preview-msg.incoming .meta {
+    color: var(--text-muted);
+}
+
+/* ===== ПРАВАЯ КОЛОНКА: НАСТРОЙКИ ===== */
+
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.settings-panel::-webkit-scrollbar {
+    width: 3px;
+}
+
+.settings-panel::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.settings-panel::-webkit-scrollbar-thumb {
+    background: #007aff;
+    border-radius: 10px;
+}
+
+.settings-panel .profile-field {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-panel .profile-field label {
+    font-size: 11px;
+    color: #8e8e93;
+    white-space: nowrap;
+}
+
+.settings-panel .profile-field .value-display {
+    color: #007aff;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.settings-panel select,
+.settings-panel input[type="text"],
+.settings-panel input[type="number"] {
+    width: 100%;
+    background: #1c1c1e;
+    border: 1px solid #2c2c2e;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: white;
+    font-size: 12px;
+    font-family: var(--font-family);
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.settings-panel select:focus,
+.settings-panel input:focus {
+    border-color: #007aff;
+}
+
+.settings-panel select option {
+    background: #1c1c1e;
+    color: white;
+}
+
+.settings-panel input[type="range"] {
+    width: 100%;
+    height: 3px;
+    background: #2c2c2e;
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.settings-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+}
+
+.settings-panel input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+}
+
+.settings-panel input[type="color"] {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    justify-self: start;
+}
+
+.settings-panel input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.settings-panel input[type="color"]::-webkit-color-swatch {
+    border-radius: 50%;
+    border: 1px solid #2c2c2e;
+}
+
+.settings-panel .font-select-wrapper {
+    position: relative;
+}
+
+.settings-panel .font-select-wrapper::after {
+    content: '\f0d7';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8e8e93;
+    pointer-events: none;
+    font-size: 10px;
+}
+
+.settings-panel .wallpaper-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    padding: 4px 8px;
+    background: #1c1c1e;
+    border: 1px dashed #2c2c2e;
+    border-radius: 6px;
+    color: #007aff;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+.settings-panel .wallpaper-upload-btn:hover {
+    background: #2c2c2e;
+    border-color: #007aff;
+}
+
+.settings-panel .wallpaper-upload-btn i {
+    font-size: 12px;
+}
+
+.settings-panel .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.settings-panel .btn-row button {
+    flex: 1;
+    padding: 6px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+.settings-panel .btn-primary {
+    background: #007aff;
+    color: white;
+}
+
+.settings-panel .btn-primary:hover {
+    background: #0055cc;
+}
+
+.settings-panel .btn-danger {
+    background: #1c1c1e;
+    color: #ff3b30;
+}
+
+.settings-panel .btn-danger:hover {
+    background: #2c2c2e;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .appearance-modal .modal-body {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+    .appearance-modal .modal-content {
+        max-width: 95% !important;
+        height: auto !important;
+        max-height: 90vh;
+    }
+    .settings-panel .profile-field {
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+}
+
+
+/* ===== ШРИФТЫ ===== */
+
+.font-preview {
+    font-size: 18px;
+    padding: 12px 16px;
+    background: #1c1c1e;
+    border-radius: 12px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+    border: 1px solid #2c2c2e;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+}
+
+.font-preview span {
+    display: block;
+    font-size: 18px;
+    color: white;
+}
+
+.font-select-wrapper {
+    position: relative;
+}
+
+.font-select-wrapper select {
+    width: 100%;
+    background: #1c1c1e;
+    border: 1px solid #2c2c2e;
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 15px;
+    font-family: var(--font-family);
+    transition: border-color 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.font-select-wrapper select:focus {
+    border-color: #007aff;
+}
+
+.font-select-wrapper select option {
+    background: #1c1c1e;
+    color: white;
+    padding: 8px;
+}
+
+.font-select-wrapper::after {
+    content: '\f0d7';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8e8e93;
+    pointer-events: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /* ===== ОФОРМЛЕНИЕ — ПОЛНОЦЕННЫЙ ПРЕДПРОСМОТР ===== */
+
+.appearance-modal .modal-content {
+    background: #0f0f0f !important;
+    border-radius: 24px;
+    overflow: hidden;
+    color: white;
+    width: 100%;
+    max-width: 700px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+
+.appearance-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 24px;
+    border-bottom: 1px solid #2c2c2e;
+    background: #0f0f0f;
+}
+
+.appearance-modal .modal-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.appearance-modal .modal-header .close-btn {
+    background: none;
+    border: none;
+    color: #8e8e93;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.appearance-modal .modal-header .close-btn:hover {
+    background: #1c1c1e;
+    color: white;
+}
+
+.appearance-modal .modal-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 768px) {
+    .appearance-modal .modal-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== ПРЕДПРОСМОТР ЧАТА ===== */
+
+.preview-chat-container {
+    background: #0a0a0a;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #2c2c2e;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-chat-header {
+    padding: 12px 16px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #2c2c2e;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.preview-chat-header .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.preview-chat-header .info {
+    flex: 1;
+}
+
+.preview-chat-header .name {
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+}
+
+.preview-chat-header .status {
+    font-size: 11px;
+    color: #8e8e93;
+}
+
+.preview-messages-area {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.preview-msg {
+    max-width: 80%;
+    padding: 8px 12px;
+    border-radius: var(--bubble-radius);
+    font-size: 13px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    position: relative;
+    animation: fadeIn 0.2s ease;
+}
+
+.preview-msg.outgoing {
+    align-self: flex-end;
+    background: var(--primary-color);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.preview-msg.incoming {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.preview-msg .meta {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 2px;
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+.preview-msg.outgoing .meta {
+    color: rgba(255,255,255,0.7);
+}
+
+.preview-msg.incoming .meta {
+    color: var(--text-muted);
+}
+
+.preview-msg .check {
+    font-size: 9px;
+}
+
+/* ===== ПАНЕЛЬ НАСТРОЕК ===== */
+
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-panel .profile-field {
+    margin-bottom: 0;
+}
+
+.settings-panel label {
+    font-size: 12px;
+    color: #8e8e93;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.settings-panel select,
+.settings-panel input[type="text"],
+.settings-panel input[type="number"] {
+    width: 100%;
+    background: #1c1c1e;
+    border: 1px solid #2c2c2e;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 13px;
+    font-family: var(--font-family);
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.settings-panel select:focus,
+.settings-panel input:focus {
+    border-color: #007aff;
+}
+
+.settings-panel select option {
+    background: #1c1c1e;
+    color: white;
+}
+
+.settings-panel input[type="range"] {
+    width: 100%;
+    height: 3px;
+    background: #2c2c2e;
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.settings-panel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+}
+
+.settings-panel input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #007aff;
+    cursor: pointer;
+    border: none;
+}
+
+.settings-panel input[type="color"] {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+}
+
+.settings-panel input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.settings-panel input[type="color"]::-webkit-color-swatch {
+    border-radius: 50%;
+    border: 1px solid #2c2c2e;
+}
+
+.settings-panel .value-display {
+    color: #007aff;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.settings-panel .font-select-wrapper {
+    position: relative;
+}
+
+.settings-panel .font-select-wrapper select {
+    padding-right: 30px;
+}
+
+.settings-panel .font-select-wrapper::after {
+    content: '\f0d7';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8e8e93;
+    pointer-events: none;
+}
+
+.settings-panel .wallpaper-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px;
+    background: #1c1c1e;
+    border: 1px dashed #2c2c2e;
+    border-radius: 8px;
+    color: #007aff;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+.settings-panel .wallpaper-upload-btn:hover {
+    background: #2c2c2e;
+    border-color: #007aff;
+}
+
+.settings-panel .wallpaper-upload-btn i {
+    font-size: 14px;
+}
+
+.settings-panel .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.settings-panel .btn-row button {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-family);
+}
+
+.settings-panel .btn-primary {
+    background: #007aff;
+    color: white;
+}
+
+.settings-panel .btn-primary:hover {
+    background: #0055cc;
+}
+
+.settings-panel .btn-danger {
+    background: #1c1c1e;
+    color: #ff3b30;
+}
+
+.settings-panel .btn-danger:hover {
+    background: #2c2c2e;
+}
+
+
+
+
+
+
+
+
+/* ===== ПРИНУДИТЕЛЬНЫЕ СТИЛИ ДЛЯ МОДАЛКИ ===== */
+#tempModal .modal-content {
+    background: #0f0f0f !important;
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    color: white !important;
+    width: 100% !important;
+    max-width: 900px !important;
+    height: 506px !important;
+    max-height: 85vh !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+}
+
+#tempModalBody {
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100% !important;
+    width: 100% !important;
+}
+
+
+
+
+
     </style>
 </head>
 <body>
@@ -5892,32 +6741,48 @@
 
     function showModal(title, content) {
     const modalBody = document.getElementById('tempModalBody');
+    const modalContent = document.getElementById('tempModalContent');
 
-    if (modalBody) {
-        // Если контент уже содержит other-profile или personal-colors-section,
-        // показываем как есть (профиль)
-        if (content.includes('other-profile') || content.includes('personal-colors-section') ||
-            content.includes('edit-profile-modal') || content.includes('playlist-header')) {
+    if (modalBody && modalContent) {
+        // Сбрасываем стили, чтобы CSS управлял размером
+        modalContent.style.width = '100%';
+        modalContent.style.maxWidth = '900px';
+        modalContent.style.height = '506px'; // 16:9
+        modalContent.style.maxHeight = '85vh';
+
+        // Если контент уже имеет свою структуру, вставляем как есть
+        if (content.includes('appearance-modal') || content.includes('preview-chat-container')) {
             modalBody.innerHTML = content;
         } else {
-            // Для обычных модалок добавляем заголовок и обертку
+            // Для обычных модалок
             modalBody.innerHTML = `
-                <div style="background: #0f0f0f; border-radius: 24px; overflow: hidden; color: white;">
+                <div style="background: #0f0f0f; border-radius: 24px; overflow: hidden; color: white; width: 100%; height: 100%; display: flex; flex-direction: column;">
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #2c2c2e;">
-                        <div style="font-size: 18px; font-weight: 600;">${title || ''}</div>
+                        <div style="font-size: 18px; font-weight: 600; color: white;">${title || ''}</div>
                         <button onclick="closeModal('tempModal')" style="background: none; border: none; color: #8e8e93; font-size: 20px; cursor: pointer;">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <div style="padding: 20px;">
+                    <div style="padding: 20px; overflow-y: auto; flex: 1;">
                         ${content}
                     </div>
                 </div>
             `;
         }
-    }
 
-    openModal('tempModal');
+        openModal('tempModal');
+
+        // Принудительно применяем стили после рендера
+        setTimeout(() => {
+            const modalContentEl = document.getElementById('tempModalContent');
+            if (modalContentEl) {
+                modalContentEl.style.width = '100%';
+                modalContentEl.style.maxWidth = '900px';
+                modalContentEl.style.height = '506px';
+                modalContentEl.style.maxHeight = '85vh';
+            }
+        }, 50);
+    }
 }
 
     function showToast(message) {
@@ -9830,56 +10695,516 @@ function removeContactById(userId) {
         }).then(() => { closeModal('tempModal'); alert('Настройки сохранены'); });
     }
 
-    function openAppearance() {
-        closeBurgerMenu();
-        fetch('/api/get_settings')
-            .then(r => r.json())
-            .then(s => {
-                let h = `
-                    <div class="profile-field"><label>Тема</label><select id="themeSelect" class="modal-input" onchange="applyTheme(this.value)"><option value="light" ${s.theme === 'light' ? 'selected' : ''}>Светлая</option><option value="dark" ${s.theme === 'dark' ? 'selected' : ''}>Тёмная</option></select></div>
-                    <div class="profile-field"><label>Размер текста: <span id="fontSizeValue">${s.font_size || 14}</span>px</label><input type="range" id="fontSizeRange" min="12" max="20" value="${s.font_size || 14}" oninput="updateFontSize(this.value)"></div>
-                    <div class="profile-field"><label>Радиус сообщений: <span id="bubbleRadiusValue">${s.bubble_radius || 18}</span>px</label><input type="range" id="bubbleRadiusRange" min="0" max="30" value="${s.bubble_radius || 18}" oninput="updateBubbleRadius(this.value)"></div>
-                    <div class="profile-field"><label>Цвет моих сообщений</label><input type="color" id="myMessageColor" value="${s.my_message_color || '#667eea'}"></div>
-                    <div class="profile-field"><label>Цвет чужих сообщений</label><input type="color" id="theirMessageColor" value="${s.their_message_color || '#f3f4f6'}"></div>
-                    <button class="modal-btn modal-btn-primary" onclick="saveAppearanceSettings()">Сохранить</button>
-                `;
-                showModal('Оформление', h);
-            });
+
+
+// ===== ОФОРМЛЕНИЕ (ПОЛНЫЙ ФУНКЦИОНАЛ) =====
+
+// ===== ШРИФТЫ =====
+
+// Список из 50 читаемых шрифтов
+const FONT_LIST = [
+    { name: 'Unbounded', value: "'Unbounded', cursive" },
+    { name: 'Inter', value: "'Inter', sans-serif" },
+    { name: 'Roboto', value: "'Roboto', sans-serif" },
+    { name: 'Open Sans', value: "'Open Sans', sans-serif" },
+    { name: 'Montserrat', value: "'Montserrat', sans-serif" },
+    { name: 'Poppins', value: "'Poppins', sans-serif" },
+    { name: 'Nunito', value: "'Nunito', sans-serif" },
+    { name: 'Rubik', value: "'Rubik', sans-serif" },
+    { name: 'Manrope', value: "'Manrope', sans-serif" },
+    { name: 'Plus Jakarta Sans', value: "'Plus Jakarta Sans', sans-serif" },
+    { name: 'Quicksand', value: "'Quicksand', sans-serif" },
+    { name: 'Jost', value: "'Jost', sans-serif" },
+    { name: 'Outfit', value: "'Outfit', sans-serif" },
+    { name: 'Lexend', value: "'Lexend', sans-serif" },
+    { name: 'DM Sans', value: "'DM Sans', sans-serif" },
+    { name: 'Mulish', value: "'Mulish', sans-serif" },
+    { name: 'Work Sans', value: "'Work Sans', sans-serif" },
+    { name: 'Nunito Sans', value: "'Nunito Sans', sans-serif" },
+    { name: 'Figtree', value: "'Figtree', sans-serif" },
+    { name: 'Public Sans', value: "'Public Sans', sans-serif" },
+    { name: 'Epilogue', value: "'Epilogue', sans-serif" },
+    { name: 'Sora', value: "'Sora', sans-serif" },
+    { name: 'Space Grotesk', value: "'Space Grotesk', sans-serif" },
+    { name: 'Archivo', value: "'Archivo', sans-serif" },
+    { name: 'Be Vietnam Pro', value: "'Be Vietnam Pro', sans-serif" },
+    { name: 'Syne', value: "'Syne', sans-serif" },
+    { name: 'Urbanist', value: "'Urbanist', sans-serif" },
+    { name: 'Kumbh Sans', value: "'Kumbh Sans', sans-serif" },
+    { name: 'Commissioner', value: "'Commissioner', sans-serif" },
+    { name: 'Prompt', value: "'Prompt', sans-serif" },
+    { name: 'Titillium Web', value: "'Titillium Web', sans-serif" },
+    { name: 'Cabin', value: "'Cabin', sans-serif" },
+    { name: 'Overpass', value: "'Overpass', sans-serif" },
+    { name: 'Red Hat Display', value: "'Red Hat Display', sans-serif" },
+    { name: 'Exo 2', value: "'Exo 2', sans-serif" },
+    { name: 'Oswald', value: "'Oswald', sans-serif" },
+    { name: 'Barlow', value: "'Barlow', sans-serif" },
+    { name: 'Karla', value: "'Karla', sans-serif" },
+    { name: 'Lato', value: "'Lato', sans-serif" },
+    { name: 'Merriweather Sans', value: "'Merriweather Sans', sans-serif" },
+    { name: 'Maven Pro', value: "'Maven Pro', sans-serif" },
+    { name: 'Palanquin', value: "'Palanquin', sans-serif" },
+    { name: 'Raleway', value: "'Raleway', sans-serif" },
+    { name: 'Source Sans 3', value: "'Source Sans 3', sans-serif" },
+    { name: 'Tajawal', value: "'Tajawal', sans-serif" },
+    { name: 'Varta', value: "'Varta', sans-serif" },
+    { name: 'Yantramanav', value: "'Yantramanav', sans-serif" },
+    { name: 'Zilla Slab', value: "'Zilla Slab', serif" },
+    { name: 'Bitter', value: "'Bitter', serif" },
+    { name: 'Cormorant Garamond', value: "'Cormorant Garamond', serif" }
+];
+
+// Загружаем шрифты при старте
+function loadFonts() {
+    const fontUrl = FONT_LIST.map(f => f.value.replace(/'/g, '').replace(', sans-serif', '').replace(', serif', '').trim())
+        .filter(name => !name.includes(' '))
+        .join('&family=');
+
+    const link = document.createElement('link');
+    link.href = `https://fonts.googleapis.com/css2?family=${fontUrl}&display=swap`;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+}
+
+// Обновлённая функция openAppearance с выбором шрифта
+// ===== ОФОРМЛЕНИЕ 16:9 =====
+
+function openAppearance() {
+    closeBurgerMenu();
+
+    fetch('/api/get_settings')
+        .then(r => r.json())
+        .then(s => {
+            const theme = s.theme || 'light';
+            const fontFamily = s.font_family || "'Unbounded', cursive";
+            const fontSize = s.font_size || 14;
+            const bubbleRadius = s.bubble_radius || 18;
+            const myColor = s.my_message_color || '#667eea';
+            const theirColor = s.their_message_color || '#f3f4f6';
+            const wallpaperImage = s.wallpaper_image || '';
+            const wallpaper = s.wallpaper || '';
+
+            let wallpaperPreviewStyle = 'background: #0a0a0a;';
+            if (wallpaperImage) {
+                wallpaperPreviewStyle = `background-image: url('/${wallpaperImage}'); background-size: cover; background-position: center;`;
+            } else if (wallpaper) {
+                wallpaperPreviewStyle = `background: ${wallpaper};`;
+            }
+
+            const fontOptions = FONT_LIST.map(f =>
+                `<option value="${f.value}" ${fontFamily === f.value ? 'selected' : ''}>${f.name}</option>`
+            ).join('');
+
+            let html = `
+                <div class="appearance-modal" style="height: 100%; display: flex; flex-direction: column;">
+                    <div class="modal-header">
+                        <h3>Оформление</h3>
+                        <button class="close-btn" onclick="closeModal('tempModal')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 16px 20px 20px; overflow: hidden;">
+                        <!-- ЛЕВАЯ КОЛОНКА: ПРЕДПРОСМОТР -->
+                        <div class="preview-chat-container" style="height: 100%; display: flex; flex-direction: column; background: #0a0a0a; border-radius: 16px; overflow: hidden; border: 1px solid #2c2c2e;">
+                            <div class="preview-chat-header" style="padding: 10px 14px; background: #1a1a1a; border-bottom: 1px solid #2c2c2e; display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                                <div class="avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white;">А</div>
+                                <div class="info" style="flex: 1;">
+                                    <div class="name" id="previewName" style="font-weight: 600; font-size: 13px; color: white; font-family: ${fontFamily}; font-size: ${fontSize}px;">Алексей</div>
+                                    <div class="status" style="font-size: 10px; color: #8e8e93;">был(а) недавно</div>
+                                </div>
+                            </div>
+                            <div class="preview-messages-area" id="previewMessagesArea" style="flex: 1; padding: 12px; overflow-y: auto; ${wallpaperPreviewStyle};">
+                                <!-- Сообщения через JS -->
+                            </div>
+                        </div>
+
+                        <!-- ПРАВАЯ КОЛОНКА: НАСТРОЙКИ -->
+                        <div class="settings-panel" style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto;">
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Тема</label>
+                                <select id="themeSelect" style="width: 100%; background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 6px; padding: 4px 8px; color: white; font-size: 12px; outline: none;" onchange="applyThemePreview(this.value)">
+                                    <option value="light" ${theme === 'light' ? 'selected' : ''}>Светлая</option>
+                                    <option value="dark" ${theme === 'dark' ? 'selected' : ''}>Тёмная</option>
+                                </select>
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Шрифт</label>
+                                <div class="font-select-wrapper" style="position: relative;">
+                                    <select id="fontSelect" style="width: 100%; background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 6px; padding: 4px 8px; color: white; font-size: 12px; outline: none; appearance: none;" onchange="applyFontPreview(this.value)">
+                                        ${fontOptions}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Размер</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="value-display" id="fontSizeValue" style="color: #007aff; font-weight: 500; font-size: 12px;">${fontSize}</span>px
+                                    <input type="range" id="fontSizeRange" min="12" max="20" value="${fontSize}" style="flex: 1; height: 3px; background: #2c2c2e; border-radius: 2px; outline: none;" oninput="applyFontSizePreview(this.value)">
+                                </div>
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Радиус</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="value-display" id="bubbleRadiusValue" style="color: #007aff; font-weight: 500; font-size: 12px;">${bubbleRadius}</span>px
+                                    <input type="range" id="bubbleRadiusRange" min="0" max="30" value="${bubbleRadius}" style="flex: 1; height: 3px; background: #2c2c2e; border-radius: 2px; outline: none;" oninput="applyBubbleRadiusPreview(this.value)">
+                                </div>
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Мои</label>
+                                <input type="color" id="myMessageColor" value="${myColor}" style="width: 28px; height: 28px; border: none; border-radius: 50%; cursor: pointer; padding: 0; background: none; justify-self: start;" oninput="applyMyColorPreview(this.value)">
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Чужие</label>
+                                <input type="color" id="theirMessageColor" value="${theirColor}" style="width: 28px; height: 28px; border: none; border-radius: 50%; cursor: pointer; padding: 0; background: none; justify-self: start;" oninput="applyTheirColorPreview(this.value)">
+                            </div>
+
+                            <div class="profile-field" style="display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 10px;">
+                                <label style="font-size: 11px; color: #8e8e93;">Обои</label>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <button class="wallpaper-upload-btn" onclick="document.getElementById('wallpaperInput').click()" style="display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; padding: 4px 8px; background: #1c1c1e; border: 1px dashed #2c2c2e; border-radius: 6px; color: #007aff; font-size: 11px; cursor: pointer;">
+                                        <i class="fas fa-image"></i> Загрузить
+                                    </button>
+                                    <input type="file" id="wallpaperInput" accept="image/*" style="display:none;" onchange="uploadWallpaperPreview(this)">
+                                    <button onclick="resetWallpaperPreview()" style="display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; padding: 4px 8px; background: #1c1c1e; border: 1px dashed #ff3b30; border-radius: 6px; color: #ff3b30; font-size: 11px; cursor: pointer;">
+                                        <i class="fas fa-undo"></i> Сбросить
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="btn-row" style="display: flex; gap: 8px; margin-top: 4px;">
+                                <button class="btn-primary" onclick="saveAllSettings()" style="flex: 1; padding: 6px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: #007aff; color: white;">
+                                    <i class="fas fa-save"></i> Сохранить
+                                </button>
+                                <button onclick="closeModal('tempModal')" style="flex: 1; padding: 6px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; background: #1c1c1e; color: #ff3b30;">
+                                    <i class="fas fa-times"></i> Отмена
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('tempModalBody').innerHTML = html;
+            openModal('tempModal');
+
+            setTimeout(() => renderPreviewMessages(), 50);
+        })
+        .catch(err => {
+            console.error('Error loading settings:', err);
+            alert('Ошибка загрузки настроек');
+        });
+}
+
+
+
+// ===== ФУНКЦИИ ПРЕДПРОСМОТРА =====
+
+function renderPreviewMessages() {
+    const container = document.getElementById('previewMessagesArea');
+    if (!container) return;
+
+    const messages = [
+        { type: 'incoming', text: 'Привет! Как дела?', time: '10:15' },
+        { type: 'outgoing', text: 'Всё отлично! А у тебя?', time: '10:16' },
+        { type: 'incoming', text: 'Тоже хорошо. Чем занимаешься?', time: '10:17' },
+        { type: 'outgoing', text: 'Настраиваю мессенджер, добавляю новые фичи.', time: '10:18' },
+        { type: 'incoming', text: 'Круто! Покажи, что получилось.', time: '10:19' }
+    ];
+
+    container.innerHTML = messages.map(msg => `
+        <div class="preview-msg ${msg.type}">
+            ${msg.text}
+            <div class="meta">
+                <span>${msg.time}</span>
+                ${msg.type === 'outgoing' ? '<span class="check"><i class="fas fa-check-double"></i></span>' : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===== ФУНКЦИИ ПРЕДПРОСМОТРА =====
+
+function applyThemePreview(theme) {
+    document.body.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('nexgram_theme', theme);
+}
+
+function applyFontPreview(fontFamily) {
+    document.body.style.fontFamily = fontFamily;
+    document.documentElement.style.setProperty('--font-family', fontFamily);
+    document.getElementById('previewName').style.fontFamily = fontFamily;
+    document.querySelectorAll('.preview-msg').forEach(el => {
+        el.style.fontFamily = fontFamily;
+    });
+}
+
+function applyFontSizePreview(value) {
+    document.getElementById('fontSizeValue').textContent = value;
+    document.body.style.fontSize = value + 'px';
+    document.querySelectorAll('.preview-msg').forEach(el => {
+        el.style.fontSize = value + 'px';
+    });
+}
+
+function applyBubbleRadiusPreview(value) {
+    document.getElementById('bubbleRadiusValue').textContent = value;
+    document.documentElement.style.setProperty('--bubble-radius', value + 'px');
+    document.querySelectorAll('.preview-msg').forEach(el => {
+        el.style.borderRadius = value + 'px';
+    });
+}
+
+function applyMyColorPreview(value) {
+    document.documentElement.style.setProperty('--primary-color', value);
+    document.querySelectorAll('.preview-msg.outgoing').forEach(el => {
+        el.style.backgroundColor = value;
+    });
+}
+
+function applyTheirColorPreview(value) {
+    document.querySelectorAll('.preview-msg.incoming').forEach(el => {
+        el.style.backgroundColor = value;
+    });
+}
+
+function uploadWallpaperPreview(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+        alert('Выберите изображение');
+        input.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const area = document.getElementById('previewMessagesArea');
+        if (area) {
+            area.style.backgroundImage = `url('${e.target.result}')`;
+            area.style.backgroundSize = 'cover';
+            area.style.backgroundPosition = 'center';
+            area.style.backgroundColor = 'transparent';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function resetWallpaperPreview() {
+    const area = document.getElementById('previewMessagesArea');
+    if (area) {
+        area.style.backgroundImage = 'none';
+        area.style.backgroundColor = '#0a0a0a';
+    }
+}
+
+// ===== СОХРАНЕНИЕ =====
+
+function saveAllSettings() {
+    const updates = {
+        font_family: document.getElementById('fontSelect').value,
+        font_size: parseInt(document.getElementById('fontSizeRange').value),
+        bubble_radius: parseInt(document.getElementById('bubbleRadiusRange').value),
+        my_message_color: document.getElementById('myMessageColor').value,
+        their_message_color: document.getElementById('theirMessageColor').value
+    };
+
+    const wallpaperInput = document.getElementById('wallpaperInput');
+    if (wallpaperInput && wallpaperInput.files && wallpaperInput.files[0]) {
+        const formData = new FormData();
+        formData.append('wallpaper', wallpaperInput.files[0]);
+        fetch('/api/update_wallpaper', { method: 'POST', body: formData });
     }
 
-    function applyTheme(theme) {
-        document.body.classList.toggle('dark', theme === 'dark');
-        fetch('/api/update_theme', {
+    Promise.all([
+        fetch('/api/update_font_family', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ theme: theme })
+            body: JSON.stringify({ font_family: updates.font_family })
+        }),
+        fetch('/api/update_font_size', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ font_size: updates.font_size })
+        }),
+        fetch('/api/update_bubble_radius', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bubble_radius: updates.bubble_radius })
+        }),
+        fetch('/api/update_message_colors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                my_message_color: updates.my_message_color,
+                their_message_color: updates.their_message_color
+            })
+        })
+    ]).then(() => {
+        closeModal('tempModal');
+        showToast('✅ Настройки сохранены!');
+        setTimeout(() => location.reload(), 500);
+    }).catch(err => {
+        console.error('Error saving settings:', err);
+        alert('Ошибка при сохранении');
+    });
+}
+
+
+function applyFont(fontFamily) {
+    // Применяем шрифт к предпросмотру
+    const preview = document.getElementById('fontPreview');
+    if (preview) {
+        preview.style.fontFamily = fontFamily;
+    }
+    // Применяем к телу страницы
+    document.body.style.fontFamily = fontFamily;
+    document.documentElement.style.setProperty('--font-family', fontFamily);
+}
+
+
+
+function updateFontSize(value) {
+    document.getElementById('fontSizeValue').textContent = value;
+    document.body.style.fontSize = value + 'px';
+}
+
+function updateBubbleRadius(value) {
+    document.getElementById('bubbleRadiusValue').textContent = value;
+    document.documentElement.style.setProperty('--bubble-radius', value + 'px');
+}
+
+function updateMyMessageColor(value) {
+    document.documentElement.style.setProperty('--primary-color', value);
+}
+
+function updateTheirMessageColor(value) {
+    // Можно применить временно, но лучше через CSS переменную
+    document.querySelectorAll('.message.incoming .message-bubble').forEach(el => {
+        el.style.backgroundColor = value;
+    });
+}
+
+// ===== ОБОИ =====
+
+function uploadWallpaper(input) {
+    if (!input.files || !input.files[0]) return;
+
+    const file = input.files[0];
+    if (file.size > 10 * 1024 * 1024) {
+        alert('Файл слишком большой. Максимальный размер: 10MB');
+        input.value = '';
+        return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+        alert('Пожалуйста, выберите изображение');
+        input.value = '';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('wallpaper', file);
+
+    // Показываем предпросмотр
+    const preview = document.getElementById('wallpaperPreview');
+    if (preview) {
+        preview.style.backgroundImage = `url('${URL.createObjectURL(file)}')`;
+        preview.style.backgroundSize = 'cover';
+        preview.style.backgroundPosition = 'center';
+    }
+
+    fetch('/api/update_wallpaper', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Обои обновлены!');
+            // Применяем к области сообщений
+            if (data.wallpaper_image) {
+                document.getElementById('messagesArea').style.backgroundImage = `url('/${data.wallpaper_image}')`;
+            }
+        } else {
+            alert('Ошибка при загрузке обоев');
+        }
+    })
+    .catch(err => {
+        console.error('Upload error:', err);
+        alert('Ошибка соединения с сервером');
+    });
+}
+
+function resetWallpaper() {
+    if (confirm('Сбросить обои до стандартных?')) {
+        fetch('/api/update_wallpaper', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ wallpaper: '' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const preview = document.getElementById('wallpaperPreview');
+                if (preview) {
+                    preview.style.backgroundImage = 'none';
+                    preview.style.backgroundColor = '#1a1a1a';
+                }
+                document.getElementById('messagesArea').style.backgroundImage = 'none';
+                showToast('🔄 Обои сброшены');
+            }
         });
     }
+}
 
-    function updateFontSize(value) {
-        document.getElementById('fontSizeValue').textContent = value;
-        document.body.style.fontSize = value + 'px';
-    }
+// Обновлённая функция сохранения
+function saveAppearanceSettings() {
+    const updates = {
+        font_family: document.getElementById('fontSelect').value,
+        font_size: parseInt(document.getElementById('fontSizeRange').value),
+        bubble_radius: parseInt(document.getElementById('bubbleRadiusRange').value),
+        my_message_color: document.getElementById('myMessageColor').value,
+        their_message_color: document.getElementById('theirMessageColor').value
+    };
 
-    function updateBubbleRadius(value) {
-        document.getElementById('bubbleRadiusValue').textContent = value;
-        document.documentElement.style.setProperty('--bubble-radius', value + 'px');
-    }
-
-    function saveAppearanceSettings() {
-        const updates = {
-            font_size: parseInt(document.getElementById('fontSizeRange').value),
-            bubble_radius: parseInt(document.getElementById('bubbleRadiusRange').value),
-            my_message_color: document.getElementById('myMessageColor').value,
-            their_message_color: document.getElementById('theirMessageColor').value
-        };
-
-        Promise.all([
-            fetch('/api/update_font_size', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ font_size: updates.font_size }) }),
-            fetch('/api/update_bubble_radius', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bubble_radius: updates.bubble_radius }) }),
-            fetch('/api/update_message_colors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ my_message_color: updates.my_message_color, their_message_color: updates.their_message_color }) })
-        ]).then(() => { closeModal('tempModal'); location.reload(); });
-    }
+    Promise.all([
+        fetch('/api/update_font_family', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ font_family: updates.font_family })
+        }),
+        fetch('/api/update_font_size', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ font_size: updates.font_size })
+        }),
+        fetch('/api/update_bubble_radius', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bubble_radius: updates.bubble_radius })
+        }),
+        fetch('/api/update_message_colors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                my_message_color: updates.my_message_color,
+                their_message_color: updates.their_message_color
+            })
+        })
+    ]).then(() => {
+        closeModal('tempModal');
+        showToast('✅ Настройки сохранены!');
+        setTimeout(() => location.reload(), 500);
+    }).catch(err => {
+        console.error('Error saving settings:', err);
+        alert('Ошибка при сохранении настроек');
+    });
+}
 
     function openSessions() {
         closeBurgerMenu();

@@ -382,6 +382,48 @@ def init_db():
         )
     ''')
 
+    # Добавляем новые колонки для оформления, если их нет
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'light'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN font_size INTEGER DEFAULT 14")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN bubble_radius INTEGER DEFAULT 18")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN my_message_color TEXT DEFAULT '#667eea'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN their_message_color TEXT DEFAULT '#f3f4f6'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN wallpaper TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN wallpaper_image TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN font_family TEXT DEFAULT \"'Unbounded', cursive\"")
+    except sqlite3.OperationalError:
+        pass
+
+
     # Таблица blocked_users
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS blocked_users (
@@ -570,6 +612,22 @@ def get_blocked_users(user_id):
     conn.close()
     return blocked
 
+
+
+def get_user_settings(user_id):
+    user = get_user_by_id(user_id)
+    if not user:
+        return None
+    return {
+        'theme': user['theme'],
+        'font_size': user['font_size'],
+        'bubble_radius': user['bubble_radius'],
+        'font_family': user['font_family'],
+        'my_message_color': user['my_message_color'],
+        'their_message_color': user['their_message_color'],
+        'wallpaper': user['wallpaper'],
+        'wallpaper_image': user['wallpaper_image']
+    }
 
 def get_user_profile(user_id, current_user_id):
     conn = get_db()

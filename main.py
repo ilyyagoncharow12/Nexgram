@@ -1402,96 +1402,7 @@ def api_delete_account():
 
 
 # ---------------------- НАСТРОЙКИ ----------------------
-@app.route('/api/get_settings')
-def api_get_settings():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
 
-    settings = get_user_settings(session['user_id'])
-    return jsonify(settings or {})
-
-
-@app.route('/api/update_theme', methods=['POST'])
-def api_update_theme():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    update_user_settings(session['user_id'], theme=data.get('theme', 'light'))
-    return jsonify({'success': True})
-
-
-@app.route('/api/update_font_size', methods=['POST'])
-def api_update_font_size():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    update_user_settings(session['user_id'], font_size=data.get('font_size', 14))
-    return jsonify({'success': True})
-
-
-@app.route('/api/update_bubble_radius', methods=['POST'])
-def api_update_bubble_radius():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    update_user_settings(session['user_id'], bubble_radius=data.get('bubble_radius', 18))
-    return jsonify({'success': True})
-
-
-@app.route('/api/update_font_family', methods=['POST'])
-def api_update_font_family():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    update_user_settings(session['user_id'], font_family=data.get('font_family', "'Unbounded', cursive"))
-    return jsonify({'success': True})
-
-
-@app.route('/api/update_message_colors', methods=['POST'])
-def api_update_message_colors():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    updates = {}
-    if 'my_message_color' in data:
-        updates['my_message_color'] = data['my_message_color']
-    if 'their_message_color' in data:
-        updates['their_message_color'] = data['their_message_color']
-
-    if updates:
-        update_user_settings(session['user_id'], **updates)
-
-    return jsonify({'success': True})
-
-
-@app.route('/api/update_wallpaper', methods=['POST'])
-def api_update_wallpaper():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    if 'wallpaper' in request.files:
-        file = request.files['wallpaper']
-        if file and file.filename:
-            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
-            unique_name = f"{uuid.uuid4().hex}.{ext}"
-            folder = os.path.join(app.config['UPLOAD_FOLDER'], 'wallpapers')
-            os.makedirs(folder, exist_ok=True)
-            file_path = os.path.join(folder, unique_name)
-            file.save(file_path)
-            update_user_settings(session['user_id'], wallpaper_image=f"uploads/wallpapers/{unique_name}", wallpaper='')
-            return jsonify({'success': True, 'wallpaper_image': f"uploads/wallpapers/{unique_name}"})
-
-    data = request.get_json()
-    if data and 'wallpaper' in data:
-        update_user_settings(session['user_id'], wallpaper=data['wallpaper'], wallpaper_image='')
-        return jsonify({'success': True})
-
-    return jsonify({'success': False}), 400
 
 
 @app.route('/api/get_privacy')
@@ -2296,6 +2207,108 @@ def privacy_policy():
 @app.route('/terms')
 def terms_of_service():
     return render_template('terms_of_service.html')
+
+
+
+#-------------------ТЕМЫ АККАУНТА ---------------------
+
+# Добавьте эти маршруты после существующих API-маршрутов
+
+# ---------------------- НАСТРОЙКИ ОФОРМЛЕНИЯ ----------------------
+@app.route('/api/get_settings')
+def api_get_settings():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    settings = get_user_settings(session['user_id'])
+    return jsonify(settings or {})
+
+
+@app.route('/api/update_theme', methods=['POST'])
+def api_update_theme():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    update_user_settings(session['user_id'], theme=data.get('theme', 'light'))
+    return jsonify({'success': True})
+
+
+@app.route('/api/update_font_size', methods=['POST'])
+def api_update_font_size():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    update_user_settings(session['user_id'], font_size=data.get('font_size', 14))
+    return jsonify({'success': True})
+
+
+@app.route('/api/update_bubble_radius', methods=['POST'])
+def api_update_bubble_radius():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    update_user_settings(session['user_id'], bubble_radius=data.get('bubble_radius', 18))
+    return jsonify({'success': True})
+
+
+@app.route('/api/update_message_colors', methods=['POST'])
+def api_update_message_colors():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    updates = {}
+    if 'my_message_color' in data:
+        updates['my_message_color'] = data['my_message_color']
+    if 'their_message_color' in data:
+        updates['their_message_color'] = data['their_message_color']
+
+    if updates:
+        update_user_settings(session['user_id'], **updates)
+
+    return jsonify({'success': True})
+
+
+@app.route('/api/update_wallpaper', methods=['POST'])
+def api_update_wallpaper():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    # Если загружен файл
+    if 'wallpaper' in request.files:
+        file = request.files['wallpaper']
+        if file and file.filename:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+            unique_name = f"{uuid.uuid4().hex}.{ext}"
+            folder = os.path.join(app.config['UPLOAD_FOLDER'], 'wallpapers')
+            os.makedirs(folder, exist_ok=True)
+            file_path = os.path.join(folder, unique_name)
+            file.save(file_path)
+            update_user_settings(session['user_id'], wallpaper_image=f"uploads/wallpapers/{unique_name}", wallpaper='')
+            return jsonify({'success': True, 'wallpaper_image': f"uploads/wallpapers/{unique_name}"})
+
+    # Если сброс обоев
+    data = request.get_json()
+    if data and 'wallpaper' in data:
+        update_user_settings(session['user_id'], wallpaper=data['wallpaper'], wallpaper_image='')
+        return jsonify({'success': True})
+
+    return jsonify({'success': False}), 400
+
+
+
+
+@app.route('/api/update_font_family', methods=['POST'])
+def api_update_font_family():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    update_user_settings(session['user_id'], font_family=data.get('font_family', "'Unbounded', cursive"))
+    return jsonify({'success': True})
 
 
 # ---------------------- SOCKETIO ----------------------
