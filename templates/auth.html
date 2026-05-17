@@ -45,7 +45,7 @@
 
         .container {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             margin: 0 auto;
         }
 
@@ -185,6 +185,82 @@
             cursor: pointer;
         }
 
+        /* ===== СТИЛИ ДЛЯ СОГЛАШЕНИЯ ===== */
+        .agreement-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border-radius: 14px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .agreement-row.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+            animation: shake 0.4s ease;
+        }
+
+        .agreement-row.accepted {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .agreement-row input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: #667eea;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .agreement-text {
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+            user-select: none;
+        }
+
+        .agreement-text .link {
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            transition: all 0.2s;
+        }
+
+        .agreement-text .link:hover {
+            color: #5a67d8;
+            text-decoration: none;
+        }
+
+        .agreement-text .link:active {
+            color: #764ba2;
+        }
+
+        .agreement-error {
+            display: none;
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+            padding-left: 32px;
+        }
+
+        .agreement-error.show {
+            display: block;
+        }
+
         .btn {
             width: 100%;
             padding: clamp(14px, 4vw, 16px);
@@ -242,59 +318,6 @@
             border-left: 4px solid #3b82f6;
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        /* Адаптация для маленьких экранов */
-        @media screen and (max-width: 360px) {
-            body { padding: 8px; }
-            .card { padding: 20px 16px; border-radius: 24px; }
-            .tab { padding: 8px 4px; font-size: 12px; }
-            .btn { padding: 14px; }
-        }
-
-        /* Адаптация под высоту */
-        @media screen and (max-height: 600px) {
-            .card { padding-top: 20px; padding-bottom: 20px; }
-            .logo { margin-bottom: 16px; }
-            .logo h1 { font-size: 32px; }
-            .form-group { margin-bottom: 14px; }
-        }
-
-        /* Safe area для iOS */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: max(12px, env(safe-area-inset-left));
-                padding-right: max(12px, env(safe-area-inset-right));
-                padding-top: max(12px, env(safe-area-inset-top));
-                padding-bottom: max(12px, env(safe-area-inset-bottom));
-            }
-        }
-
-        /* Отключаем hover на тач-устройствах */
-        @media (hover: none) and (pointer: coarse) {
-            .btn:hover:not(:disabled) { transform: none; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-            .tab:hover { background: none; }
-        }
-
-        /* Фикс для iOS зума */
-        @media screen and (-webkit-min-device-pixel-ratio: 0) {
-            input[type="text"], input[type="tel"], input[type="password"] {
-                font-size: 16px !important;
-            }
-        }
-
-        .form-section {
-            display: block;
-        }
-
-        .form-section.hidden {
-            display: none;
-        }
-
         .spinner {
             display: inline-block;
             width: 16px;
@@ -308,6 +331,34 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .form-section {
+            display: block;
+        }
+
+        .form-section.hidden {
+            display: none;
+        }
+
+        /* Адаптация для маленьких экранов */
+        @media screen and (max-width: 360px) {
+            body { padding: 8px; }
+            .card { padding: 20px 16px; border-radius: 24px; }
+            .tab { padding: 8px 4px; font-size: 12px; }
+            .btn { padding: 14px; }
+            .agreement-row { padding: 10px 12px; }
+            .agreement-text { font-size: 12px; }
+        }
+
+        /* Safe area для iOS */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: max(12px, env(safe-area-inset-left));
+                padding-right: max(12px, env(safe-area-inset-right));
+                padding-top: max(12px, env(safe-area-inset-top));
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
         }
     </style>
 </head>
@@ -335,7 +386,7 @@
 
             <!-- ФОРМА ВХОДА -->
             <div id="loginSection" class="form-section">
-                <form method="POST" id="loginForm">
+                <form method="POST" id="loginForm" onsubmit="return validateLoginAgreement(event)">
                     <input type="hidden" name="action" value="login">
 
                     <div class="form-group">
@@ -361,6 +412,20 @@
                         <label for="remember">Запомнить меня</label>
                     </div>
 
+                    <!-- ===== ГАЛОЧКА СОГЛАШЕНИЯ ДЛЯ ВХОДА ===== -->
+                    <div class="agreement-row" id="loginAgreementRow">
+                        <input type="checkbox" id="loginAgreementCheck" onchange="updateLoginAgreement()">
+                        <div class="agreement-text">
+                            Я принимаю условия
+                            <span class="link" onclick="window.open('/terms', '_blank')">Пользовательского соглашения</span>
+    и
+    <span class="link" onclick="window.open('/privacy', '_blank')">Политики конфиденциальности</span>
+                        </div>
+                    </div>
+                    <div class="agreement-error" id="loginAgreementError">
+                        ⚠️ Необходимо принять условия соглашения
+                    </div>
+
                     <button type="submit" class="btn" id="loginBtn">Войти</button>
                 </form>
 
@@ -371,7 +436,7 @@
 
             <!-- ФОРМА РЕГИСТРАЦИИ -->
             <div id="registerSection" class="form-section hidden">
-                <form method="POST" id="registerForm">
+                <form method="POST" id="registerForm" onsubmit="return validateRegisterAgreement(event)">
                     <input type="hidden" name="action" value="register_step1">
 
                     <div class="form-group">
@@ -410,6 +475,20 @@
                         <div class="input-hint" id="passwordMatchHint"></div>
                     </div>
 
+                    <!-- ===== ГАЛОЧКА СОГЛАШЕНИЯ ДЛЯ РЕГИСТРАЦИИ ===== -->
+                    <div class="agreement-row" id="registerAgreementRow">
+                        <input type="checkbox" id="registerAgreementCheck" onchange="updateRegisterAgreement()">
+                        <div class="agreement-text">
+                            Я принимаю условия
+                            <span class="link" onclick="window.open('/terms', '_blank')">Пользовательского соглашения</span>
+    и
+    <span class="link" onclick="window.open('/privacy', '_blank')">Политики конфиденциальности</span>
+                        </div>
+                    </div>
+                    <div class="agreement-error" id="registerAgreementError">
+                        ⚠️ Необходимо принять условия соглашения
+                    </div>
+
                     <button type="submit" class="btn" id="registerBtn" disabled>Продолжить</button>
                 </form>
 
@@ -427,6 +506,112 @@
         let registrationComplete = false;
         let passwordValid = false;
         let passwordsMatch = false;
+        let loginAgreementAccepted = false;
+        let registerAgreementAccepted = false;
+
+        // ===== ОТКРЫТИЕ СОГЛАШЕНИЙ =====
+        function openAgreement(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open('/privacy', '_blank');
+        }
+
+        function openPrivacy(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open('/privacy', '_blank');
+        }
+
+        // ===== ПРОВЕРКА СОГЛАШЕНИЯ ДЛЯ ВХОДА =====
+        function updateLoginAgreement() {
+            loginAgreementAccepted = document.getElementById('loginAgreementCheck').checked;
+            const row = document.getElementById('loginAgreementRow');
+            const error = document.getElementById('loginAgreementError');
+
+            if (loginAgreementAccepted) {
+                row.classList.add('accepted');
+                row.classList.remove('error');
+                error.classList.remove('show');
+            } else {
+                row.classList.remove('accepted');
+            }
+        }
+
+        function validateLoginAgreement(event) {
+            loginAgreementAccepted = document.getElementById('loginAgreementCheck').checked;
+
+            if (!loginAgreementAccepted) {
+                event.preventDefault();
+                const row = document.getElementById('loginAgreementRow');
+                const error = document.getElementById('loginAgreementError');
+
+                row.classList.add('error');
+                row.classList.remove('accepted');
+                error.classList.add('show');
+
+                // Анимируем скролл к соглашению
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Убираем анимацию ошибки через 3 секунды
+                setTimeout(() => {
+                    row.classList.remove('error');
+                }, 3000);
+
+                return false;
+            }
+
+            return true;
+        }
+
+        // ===== ПРОВЕРКА СОГЛАШЕНИЯ ДЛЯ РЕГИСТРАЦИИ =====
+        function updateRegisterAgreement() {
+            registerAgreementAccepted = document.getElementById('registerAgreementCheck').checked;
+            const row = document.getElementById('registerAgreementRow');
+            const error = document.getElementById('registerAgreementError');
+
+            if (registerAgreementAccepted) {
+                row.classList.add('accepted');
+                row.classList.remove('error');
+                error.classList.remove('show');
+            } else {
+                row.classList.remove('accepted');
+            }
+
+            updateRegisterButton();
+        }
+
+        function validateRegisterAgreement(event) {
+            registerAgreementAccepted = document.getElementById('registerAgreementCheck').checked;
+
+            if (!registerAgreementAccepted) {
+                event.preventDefault();
+                const row = document.getElementById('registerAgreementRow');
+                const error = document.getElementById('registerAgreementError');
+
+                row.classList.add('error');
+                row.classList.remove('accepted');
+                error.classList.add('show');
+
+                // Анимируем скролл к соглашению
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Трясем кнопку
+                const btn = document.getElementById('registerBtn');
+                btn.style.animation = 'shake 0.4s ease';
+                setTimeout(() => {
+                    btn.style.animation = '';
+                }, 400);
+
+                // Убираем анимацию ошибки через 3 секунды
+                setTimeout(() => {
+                    row.classList.remove('error');
+                }, 3000);
+
+                return false;
+            }
+
+            return true;
+        }
 
         // ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
         function switchTab(tab) {
@@ -458,12 +643,10 @@
         function formatPhoneNumber(value) {
             let digits = value.replace(/\D/g, '');
 
-            // Убираем 7 или 8 в начале для форматирования
             if (digits.startsWith('7') || digits.startsWith('8')) {
                 digits = digits.substring(1);
             }
 
-            // Ограничиваем 10 цифрами
             digits = digits.substring(0, 10);
 
             if (digits.length === 0) return '+7 ';
@@ -481,9 +664,7 @@
 
             const digits = value.replace(/\D/g, '');
             const status = document.getElementById('phoneStatus');
-            const registerBtn = document.getElementById('registerBtn');
 
-            // Нужно минимум 11 цифр (7 + 10 цифр номера)
             if (digits.length < 11) {
                 status.textContent = '';
                 status.className = 'input-status';
@@ -492,12 +673,10 @@
                 return;
             }
 
-            // Очищаем предыдущий таймаут
             if (phoneCheckTimeout) {
                 clearTimeout(phoneCheckTimeout);
             }
 
-            // Проверяем номер с задержкой
             phoneCheckTimeout = setTimeout(() => {
                 status.innerHTML = '<span class="spinner"></span> Проверка...';
                 status.className = 'input-status';
@@ -596,7 +775,6 @@
             const phone = document.getElementById('regPhone').value;
             const digits = phone.replace(/\D/g, '');
 
-            // Определяем текст кнопки
             if (phoneExists && !registrationComplete) {
                 registerBtn.textContent = 'Завершить регистрацию';
             } else if (phoneExists && registrationComplete) {
@@ -605,29 +783,30 @@
                 registerBtn.textContent = 'Продолжить';
             }
 
-            // Валидация
-            const isValid = digits.length >= 11 && passwordValid && passwordsMatch;
+            // Кнопка активна только если всё валидно И соглашение принято
+            const isValid = digits.length >= 11 && passwordValid && passwordsMatch && registerAgreementAccepted;
             registerBtn.disabled = !isValid;
         }
 
         // ===== ОБРАБОТКА ФОРМ =====
         document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+            // Дополнительная проверка
+            if (!validateRegisterAgreement(e)) {
+                return;
+            }
 
             const phone = document.getElementById('regPhone').value;
-            const password = document.getElementById('regPassword').value;
             const registerBtn = document.getElementById('registerBtn');
 
-            // Если номер уже существует с НЕзавершённой регистрацией
             if (phoneExists && !registrationComplete) {
-                // Отправляем запрос на завершение регистрации
+                e.preventDefault();
                 registerBtn.disabled = true;
                 registerBtn.innerHTML = '<span class="spinner"></span> Загрузка...';
 
                 const formData = new FormData();
                 formData.append('action', 'register_step1');
                 formData.append('phone', phone);
-                formData.append('password', password);
+                formData.append('password', document.getElementById('regPassword').value);
 
                 fetch('/auth', {
                     method: 'POST',
@@ -642,7 +821,6 @@
                 })
                 .then(html => {
                     if (html) {
-                        // Показываем ошибку если есть
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
                         const error = doc.querySelector('.error-message');
@@ -650,36 +828,31 @@
                             alert(error.textContent);
                         }
                         registerBtn.disabled = false;
-                        registerBtn.textContent = 'Завершить регистрацию';
+                        updateRegisterButton();
                     }
                 })
                 .catch(() => {
                     registerBtn.disabled = false;
-                    registerBtn.textContent = 'Завершить регистрацию';
+                    updateRegisterButton();
                     alert('Ошибка соединения');
                 });
 
                 return;
             }
 
-            // Если номер уже полностью зарегистрирован
             if (phoneExists && registrationComplete) {
+                e.preventDefault();
                 switchTab('login');
                 document.getElementById('loginPhone').value = phone;
                 document.getElementById('loginPassword').focus();
                 return;
             }
-
-            // Обычная регистрация нового пользователя
-            this.submit();
         });
 
-        // Обработка кнопки "Перейти ко входу"
         document.getElementById('registerBtn').addEventListener('click', function(e) {
             const phone = document.getElementById('regPhone').value;
             const digits = phone.replace(/\D/g, '');
 
-            // Если номер уже зарегистрирован - переключаем на вход
             if (phoneExists && registrationComplete && digits.length >= 11) {
                 e.preventDefault();
                 switchTab('login');
@@ -688,14 +861,12 @@
             }
         });
 
-        // ===== АВТОФОРМАТИРОВАНИЕ ДЛЯ ПОЛЯ ВХОДА =====
         document.getElementById('loginPhone').addEventListener('input', function() {
             this.value = formatPhoneNumber(this.value);
         });
 
         // ===== ИНИЦИАЛИЗАЦИЯ =====
         document.addEventListener('DOMContentLoaded', function() {
-            // Устанавливаем активную вкладку из URL
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode') || '{{ mode }}' || 'login';
 
@@ -705,45 +876,15 @@
                 switchTab('login');
             }
 
-            // Обработчики для табов
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     switchTab(this.dataset.tab);
                 });
             });
 
-            // Предотвращаем pull-to-refresh на iOS
-            let touchStartY = 0;
-            document.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            }, { passive: true });
-
-            document.addEventListener('touchmove', (e) => {
-                const touchY = e.touches[0].clientY;
-                const scrollTop = document.scrollingElement.scrollTop;
-                if (scrollTop === 0 && touchY > touchStartY) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
-            // Тактильная обратная связь
-            document.querySelectorAll('.btn, .tab').forEach(btn => {
-                btn.addEventListener('touchstart', () => {
-                    if (window.navigator.vibrate) {
-                        window.navigator.vibrate(5);
-                    }
-                }, { passive: true });
-            });
+            // Убеждаемся что кнопка регистрации неактивна
+            updateRegisterButton();
         });
-
-        // Фикс для iOS клавиатуры
-        if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-            document.querySelectorAll('input').forEach(input => {
-                input.addEventListener('blur', () => {
-                    window.scrollTo(0, 0);
-                });
-            });
-        }
     </script>
 </body>
 </html>

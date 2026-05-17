@@ -41,7 +41,8 @@ from database import (
     end_video_call, get_active_video_call, get_video_call_participants,
     get_preloaded_avatars, get_deleted_avatar,
     block_user, unblock_user, is_user_blocked, get_blocked_users, get_user_profile, clear_chat, reply_to_story,
-    get_story_stats, get_story_by_id, search_messages_in_chat
+    get_story_stats, get_story_by_id, search_messages_in_chat,create_call_room, update_call
+
 )
 
 app = Flask(__name__)
@@ -76,7 +77,7 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'banners'), exist_ok=True)
 
 # Копируем аватарки если их нет
 default_avatar_files = ['avatar1.jpg', 'avatar2.jpg', 'avatar3.jpg', 'avatar4.jpg',
-                        'avatar5.png', 'avatar6.png', 'avatar7.png', 'avatar8.png', 'deleted.png']
+                        'avatar5.jpg', 'avatar6.png', 'avatar7.png', 'avatar8.png', 'avatar9.png','deleted.png']
 for ava in default_avatar_files:
     ava_path = os.path.join('static', 'avatar-swg', ava)
     if not os.path.exists(ava_path):
@@ -2284,11 +2285,17 @@ def api_get_call_info(room_id):
 
 
 
-#------------------------КОНТАКТЫ ---------------------
-
-# main.py - добавьте эти маршруты
+#------------------------policy ---------------------
 
 
+@app.route('/privacy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+
+
+@app.route('/terms')
+def terms_of_service():
+    return render_template('terms_of_service.html')
 
 
 # ---------------------- SOCKETIO ----------------------
@@ -2431,10 +2438,16 @@ def handle_video_answer(data):
 
 @socketio.on('ice_candidate')
 def handle_ice_candidate(data):
-    emit('ice_candidate', {
-        'candidate': data['candidate'],
-        'from': request.sid
-    }, room=data['to'])
+    """Пересылка ICE кандидатов"""
+    if 'user_id' not in session:
+        return
+    target_user_id = data.get('target_user_id')
+    candidate = data.get('candidate')
+    if target_user_id and candidate:
+        socketio.emit('ice_candidate_received', {
+            'candidate': candidate,
+            'from_user_id': session['user_id']
+        }, room=f"user_{target_user_id}")
 
 
 # main.py - добавьте в секцию с сокетами
@@ -2487,79 +2500,6 @@ def handle_end_call(data):
 
 
 # main.py - добавьте эти обработчики в секцию с Socket.IO
-
-@socketio.on('initiate_call')
-def handle_initiate_call(data):
-    """Начало звонка"""
-    if 'user_id' not in session:
-        return
-
-    target_user_id = data.get('target_user_id')
-    call_type = data.get('call_type', 'audio')
-
-    call_id, room_id = create_call_room(session['user_id'], target_user_id, call_type)
-
-    # Отправляем входящий звонок
-    emit('incoming_call', {
-        'call_id': call_id,
-        'caller_id': session['user_id'],
-        'caller_name': session.get('display_name', session['username']),
-        'call_type': call_type,
-        'room_id': room_id
-    }, room=f"user_{target_user_id}")
-
-    emit('call_initiated', {
-        'call_id': call_id,
-        'status': 'ringing'
-    })
-
-
-@socketio.on('accept_call')
-def handle_accept_call(data):
-    """Принятие звонка"""
-    if 'user_id' not in session:
-        return
-
-    call_id = data.get('call_id')
-    update_call(call_id, 'answered')
-
-    emit('call_accepted', {
-        'call_id': call_id,
-        'accepter_id': session['user_id']
-    }, room=f"user_{data.get('accepter_id')}")
-
-
-@socketio.on('reject_call')
-def handle_reject_call(data):
-    """Отклонение звонка"""
-    if 'user_id' not in session:
-        return
-
-    call_id = data.get('call_id')
-    update_call(call_id, 'rejected')
-
-    emit('call_rejected', {
-        'call_id': call_id
-    }, room=f"user_{data.get('caller_id')}")
-
-
-@socketio.on('end_call')
-def handle_end_call(data):
-    """Завершение звонка"""
-    if 'user_id' not in session:
-        return
-
-    call_id = data.get('call_id')
-    duration = data.get('duration', 0)
-
-    if call_id:
-        update_call(call_id, 'ended', duration)
-
-    target_user_id = data.get('target_user_id')
-    if target_user_id:
-        emit('call_ended_by_peer', {
-            'call_id': call_id
-        }, room=f"user_{target_user_id}")
 
 
 @socketio.on('call_offer')
