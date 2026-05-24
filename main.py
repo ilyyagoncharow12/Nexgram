@@ -281,7 +281,7 @@ def chat_page():
     if is_mobile():
         template = 'chat_mobile.html'
     else:
-        template = 'chat_desktop.html'
+        template = 'chat.html'
 
     user = get_user_by_id(session['user_id'])
     if not user or user['is_deleted']:
