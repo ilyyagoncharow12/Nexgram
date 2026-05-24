@@ -41,17 +41,12 @@ from database import (
     end_video_call, get_active_video_call, get_video_call_participants,
     get_preloaded_avatars, get_deleted_avatar,
     block_user, unblock_user, is_user_blocked, get_blocked_users, get_user_profile, clear_chat, reply_to_story,
-    get_story_stats, get_story_by_id, search_messages_in_chat,create_call_room, update_call,create_folder,
-    get_user_folders,
-    update_folder_name,
-    delete_folder,
-    update_folder_chats,
-    get_folder_accessible_chats,
+    get_story_stats, get_story_by_id, search_messages_in_chat,create_call_room, update_call
 
 )
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '89e=)_)_)I(E*(UIM<#*URM38um489ur74ncyrc7y54n54vm,yu6v,c0uy58u897JMM87Y78Y89ym87yn7)Y*Y_Y870y&T#67t63tye78m340yvf8v4tymuv8bymuv6754y68902m5,4cuio32pdx,jlk23'
+app.config['SECRET_KEY'] = 'nexgram-secret-key-v3'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
@@ -123,27 +118,6 @@ def complete_login(user, remember=False):
     print(f"✅ User logged in: {user['id']}, session: {session}")
 
     return redirect(url_for('chat_page'))
-
-
-
-
-
-
-from flask import request, session, render_template, redirect, url_for
-
-# Вставьте эту функцию в начало файла main.py, после импортов
-def is_mobile():
-    """Определяет, является ли устройство мобильным"""
-    user_agent = request.headers.get('User-Agent', '').lower()
-    mobile_keywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'opera mini', 'samsung', 'huawei', 'xiaomi', 'mi', 'redmi', 'poco', 'oneplus', 'oppo', 'vivo', 'realme', 'nokia', 'sony', 'lg', 'htc', 'motorola', 'lenovo', 'asus', 'acer']
-    for kw in mobile_keywords:
-        if kw in user_agent:
-            return True
-    return False
-
-# Замените маршрут /chat на этот:
-
-
 
 
 # ===== АВТОРИЗАЦИЯ =====
@@ -277,12 +251,6 @@ def chat_page():
     if 'user_id' not in session:
         return redirect(url_for('auth'))
 
-    # Определяем устройство
-    if is_mobile():
-        template = 'chat_mobile.html'
-    else:
-        template = 'chat_desktop.html'
-
     user = get_user_by_id(session['user_id'])
     if not user or user['is_deleted']:
         session.clear()
@@ -296,7 +264,7 @@ def chat_page():
     channels = get_user_channels(session['user_id'])
     avatars = get_preloaded_avatars()
 
-    return render_template(template,
+    return render_template('chat.html',
                            user=dict(user),
                            chats=[dict(chat) for chat in chats] if chats else [],
                            contacts=[dict(c) for c in contacts] if contacts else [],
@@ -564,58 +532,35 @@ def api_get_chat(user_id):
 
     current_user_id = session['user_id']
 
-    try:
-        # Проверяем, существует ли пользователь
-        other_user = get_user_by_id(user_id)
-        if not other_user:
-            return jsonify({'error': 'User not found'}), 404
+    chat_id = get_or_create_chat(current_user_id, user_id)
+    messages = get_messages(chat_id=chat_id, user_id=current_user_id)
 
-        if other_user['is_deleted']:
-            return jsonify({'error': 'User is deleted'}), 404
-
-        # Если это избранное (чат с самим собой)
-        if user_id == current_user_id:
-            my_user = get_user_by_id(current_user_id)
-            chat_id = get_or_create_chat(current_user_id, current_user_id)
-            messages = get_messages(chat_id=chat_id, user_id=current_user_id)
-
-            return jsonify({
-                'chat_id': chat_id,
-                'is_favorites': True,
-                'other_user': {
-                    'id': current_user_id,
-                    'unique_id': my_user['unique_id'],
-                    'username': my_user['username'],
-                    'display_name': 'Избранное',
-                    'avatar': my_user['avatar'],
-                    'is_favorites': True
-                },
-                'messages': [dict(m) for m in messages]
-            })
-
-        # Получаем или создаем чат
-        chat_id = get_or_create_chat(current_user_id, user_id)
-        if not chat_id:
-            return jsonify({'error': 'Could not create chat'}), 500
-
-        messages = get_messages(chat_id=chat_id, user_id=current_user_id)
-
-        # Получаем профиль другого пользователя
-        other_user_profile = get_user_profile(user_id, current_user_id)
-        if not other_user_profile:
-            return jsonify({'error': 'User profile not found'}), 404
-
+    if user_id == current_user_id:
+        my_user = get_user_by_id(current_user_id)
         return jsonify({
             'chat_id': chat_id,
-            'is_favorites': False,
-            'other_user': other_user_profile,
+            'is_favorites': True,
+            'other_user': {
+                'id': current_user_id,
+                'unique_id': my_user['unique_id'],
+                'username': my_user['username'],
+                'display_name': 'Избранное',
+                'avatar': my_user['avatar'],
+                'is_favorites': True
+            },
             'messages': [dict(m) for m in messages]
         })
-    except Exception as e:
-        print(f"❌ Error getting chat: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+
+    other_user = get_user_profile(user_id, current_user_id)
+    if not other_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify({
+        'chat_id': chat_id,
+        'is_favorites': False,
+        'other_user': other_user,
+        'messages': [dict(m) for m in messages]
+    })
 
 
 @app.route('/api/send_message', methods=['POST'])
@@ -2353,243 +2298,6 @@ def terms_of_service():
     return render_template('terms_of_service.html')
 
 
-# ===== API ПАПОК ЧАТОВ =====
-
-# ===== API ПАПОК ЧАТОВ =====
-
-@app.route('/api/folders/get', methods=['GET'])
-def api_get_folders():
-    print("📁 GET /api/folders/get")
-    if 'user_id' not in session:
-        print("❌ Unauthorized")
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        folders = get_user_folders(session['user_id'])
-        print(f"📁 Found {len(folders)} folders")
-        return jsonify({'folders': folders})
-    except Exception as e:
-        print(f"❌ Error getting folders: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/folders/get/<int:folder_id>', methods=['GET'])
-def api_get_folder_chats(folder_id):
-    print(f"📁 GET /api/folders/get/{folder_id}")
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT fc.chat_id, fc.chat_type, fc.chat_name, fc.chat_avatar, fc.other_user_id,
-                   m.content as last_message, m.created_at as last_message_time
-            FROM folder_chats fc
-            LEFT JOIN messages m ON m.id = (
-                SELECT id FROM messages WHERE 
-                    (chat_id = fc.chat_id AND fc.chat_type = 'personal') OR
-                    (group_id = fc.chat_id AND fc.chat_type = 'group') OR
-                    (channel_id = fc.chat_id AND fc.chat_type = 'channel')
-                AND is_deleted = 0
-                ORDER BY created_at DESC LIMIT 1
-            )
-            WHERE fc.folder_id = ?
-            ORDER BY fc.id
-        ''', (folder_id,))
-        chats = cursor.fetchall()
-        conn.close()
-
-        print(f"📁 Found {len(chats)} chats in folder {folder_id}")
-        return jsonify({'chats': [dict(chat) for chat in chats]})
-    except Exception as e:
-        print(f"❌ Error getting folder chats: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/folders/create', methods=['POST'])
-def api_create_folder():
-    print("📁 POST /api/folders/create")
-    if 'user_id' not in session:
-        print("❌ Unauthorized")
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        data = request.get_json()
-        print(f"📁 Data received: {data}")
-
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        name = data.get('name', '').strip()
-        chat_ids = data.get('chat_ids', [])
-
-        # ВАЖНО: проверяем, что chat_ids - это список
-        if not isinstance(chat_ids, list):
-            chat_ids = [chat_ids] if chat_ids else []
-
-        print(f"📁 Name: '{name}', Chat IDs: {chat_ids}")
-
-        if not name:
-            return jsonify({'error': 'Name is required'}), 400
-
-        # УБИРАЕМ chat_data - передаем только 3 аргумента
-        result = create_folder(session['user_id'], name, chat_ids)
-        print(f"📁 Result: {result}")
-        return jsonify(result)
-    except Exception as e:
-        print(f"❌ Error creating folder: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/folders/update', methods=['POST'])
-def api_update_folder():
-    print("📁 POST /api/folders/update")
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        data = request.get_json()
-        folder_id = data.get('folder_id')
-        name = data.get('name', '').strip()
-        chat_ids = data.get('chat_ids', [])
-
-        if not folder_id or not name:
-            return jsonify({'error': 'Folder ID and name are required'}), 400
-
-        # Проверяем существование папки и принадлежность пользователю
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM chat_folders WHERE id = ? AND user_id = ?',
-                       (folder_id, session['user_id']))
-        if not cursor.fetchone():
-            conn.close()
-            return jsonify({'error': 'Folder not found or unauthorized'}), 404
-
-        # Обновляем имя папки
-        cursor.execute('UPDATE chat_folders SET name = ? WHERE id = ?', (name, folder_id))
-
-        # Удаляем все старые чаты из папки
-        cursor.execute('DELETE FROM folder_chats WHERE folder_id = ?', (folder_id,))
-
-        # Добавляем новые чаты с правильной информацией
-        for chat_id in chat_ids:
-            # Определяем тип чата
-            cursor.execute('''
-                SELECT 'personal' as chat_type FROM chats WHERE id = ?
-                UNION
-                SELECT 'group' as chat_type FROM groups WHERE id = ?
-                UNION
-                SELECT 'channel' as chat_type FROM channels WHERE id = ?
-            ''', (chat_id, chat_id, chat_id))
-            result = cursor.fetchone()
-
-            if not result:
-                continue
-
-            chat_type = result['chat_type']
-
-            # Получаем информацию о чате
-            if chat_type == 'personal':
-                cursor.execute('''
-                    SELECT 
-                        CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
-                             ELSE COALESCE(u.display_name, u.username) END as chat_name,
-                        u.avatar as chat_avatar,
-                        CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id
-                    FROM chats c
-                    LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
-                    WHERE c.id = ?
-                ''', (session['user_id'], session['user_id'], chat_id))
-            elif chat_type == 'group':
-                cursor.execute('''
-                    SELECT name as chat_name, avatar as chat_avatar, NULL as other_user_id
-                    FROM groups WHERE id = ?
-                ''', (chat_id,))
-            elif chat_type == 'channel':
-                cursor.execute('''
-                    SELECT name as chat_name, avatar as chat_avatar, NULL as other_user_id
-                    FROM channels WHERE id = ?
-                ''', (chat_id,))
-
-            chat_info = cursor.fetchone()
-
-            if chat_info:
-                chat_name = chat_info['chat_name'] or 'Чат'
-                chat_avatar = chat_info['chat_avatar'] or ''
-                other_user_id = chat_info['other_user_id'] if chat_info['other_user_id'] else None
-
-                cursor.execute('''
-                    INSERT INTO folder_chats (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id))
-
-        conn.commit()
-        conn.close()
-        return jsonify({'success': True})
-    except Exception as e:
-        print(f"❌ Error updating folder: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/folders/delete', methods=['POST'])
-def api_delete_folder():
-    print("📁 POST /api/folders/delete")
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        data = request.get_json()
-        folder_id = data.get('folder_id')
-
-        if not folder_id:
-            return jsonify({'error': 'Folder ID is required'}), 400
-
-        result = delete_folder(folder_id, session['user_id'])
-        return jsonify({'success': result})
-    except Exception as e:
-        print(f"❌ Error deleting folder: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/folders/accessible_chats', methods=['GET'])
-def api_accessible_chats():
-    print("📁 GET /api/folders/accessible_chats")
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    try:
-        chats = get_folder_accessible_chats(session['user_id'])
-        print(f"📁 Found {len(chats)} accessible chats")
-        return jsonify({'chats': chats})
-    except Exception as e:
-        print(f"❌ Error getting accessible chats: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-
-
-
-# Добавьте эту функцию для отладки
-@app.before_request
-def log_request():
-    if request.path.startswith('/api/folders'):
-        print(f"📡 Request: {request.method} {request.path}")
-        if request.method == 'POST':
-            print(f"📦 Data: {request.get_json()}")
-
-
 # ---------------------- SOCKETIO ----------------------
 @socketio.on('connect')
 def handle_connect():
@@ -3060,8 +2768,6 @@ if __name__ == '__main__':
     print("\n" + "=" * 60)
     print("🔷 NEXGRAM v3.0 ЗАПУЩЕН!")
     print("=" * 60)
-
-
 
     local_ip = get_local_ip()
 

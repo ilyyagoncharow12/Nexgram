@@ -5409,214 +5409,6 @@
     display: none;
 }
 
-
-        /* Фиксированные размеры элементов чата */
-.chat-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
-    height: 68px;
-    box-sizing: border-box;
-    min-height: 68px;
-}
-
-.chat-avatar {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
-    min-height: 52px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    overflow: hidden;
-}
-
-.chat-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.chat-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chat-name {
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
-}
-
-.chat-time {
-    font-size: 11px;
-    flex-shrink: 0;
-    margin-left: 8px;
-}
-
-.chat-preview {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
-.chat-message {
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-}
-
-
-/* Фиксированные размеры элементов чата - добавьте в секцию <style> */
-.chat-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    gap: 12px;
-    height: 68px !important;
-    min-height: 68px !important;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: background var(--transition-fast);
-}
-
-.chat-item:hover {
-    background: var(--bg-hover);
-}
-
-.chat-avatar {
-    width: 52px !important;
-    height: 52px !important;
-    min-width: 52px !important;
-    min-height: 52px !important;
-    border-radius: 50%;
-    flex-shrink: 0;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.chat-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.chat-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chat-name {
-    font-weight: 600;
-    font-size: 15px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
-    color: var(--text-primary);
-}
-
-.chat-time {
-    font-size: 11px;
-    flex-shrink: 0;
-    margin-left: 8px;
-    color: var(--text-muted);
-}
-
-.chat-preview {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
-.chat-message {
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-    color: var(--text-secondary);
-}
-
-.chat-badge {
-    background: var(--primary-color);
-    color: white;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-    min-width: 20px;
-    text-align: center;
-}
-
-
-
-
-        /* Стили для результатов поиска в чате */
-.search-result-message {
-    padding: 12px;
-    border-bottom: 1px solid #1c1c1e;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.search-result-message:hover {
-    background: #1c1c1e;
-}
-
-.search-result-message .highlight {
-    background: #ffd700;
-    color: #000;
-    padding: 0 4px;
-    border-radius: 4px;
-}
-
-#searchResultsContainer {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-#searchResultsContainer::-webkit-scrollbar {
-    width: 4px;
-}
-
-#searchResultsContainer::-webkit-scrollbar-track {
-    background: #1c1c1e;
-}
-
-#searchResultsContainer::-webkit-scrollbar-thumb {
-    background: #007aff;
-    border-radius: 10px;
-}
-
-/* Анимация для счетчика */
-@keyframes fadeInOut {
-    0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
-    20% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    80% { opacity: 1; transform: translateX(-50%) translateY(0); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-}
-
-#searchResultCounter {
-    animation: fadeInOut 3s ease forwards;
-}
-
-
     </style>
 </head>
 <body>
@@ -5633,7 +5425,17 @@
             </button>
         </div>
 
-        <div class="chat-tabs" id="chatTabs"></div>
+        <div class="chat-tabs">
+            <button class="chat-tab active" onclick="switchTab('chats')">
+                <i class="fas fa-comment"></i> Чаты
+            </button>
+            <button class="chat-tab" onclick="switchTab('groups')">
+                <i class="fas fa-users"></i> Группы
+            </button>
+            <button class="chat-tab" onclick="switchTab('channels')">
+                <i class="fas fa-bullhorn"></i> Каналы
+            </button>
+        </div>
 
         <div class="stories-container" id="storiesContainer">
             <div class="story-circle" onclick="openStoryUpload()">
@@ -5711,34 +5513,6 @@
         <button class="incoming-accept-btn" onclick="acceptIncomingCall()">
             <i class="fas fa-phone-alt"></i>
         </button>
-    </div>
-</div>
-
-
-
-
-    <<!-- МОДАЛЬНОЕ ОКНО ДЛЯ ПОИСКА (ИСПРАВЛЕННАЯ ВЕРСИЯ) -->
-<div class="modal" id="searchModal">
-    <div class="modal-content" style="max-width: 550px; background: #0f0f0f; border-radius: 24px; color: white;">
-        <div class="modal-header" style="border-bottom: 1px solid #2c2c2e; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="font-size: 18px; font-weight: 600; color: white; -webkit-text-fill-color: white; background: none; margin: 0;">
-                <i class="fas fa-search" style="color: #007aff;"></i> Поиск в чате
-            </h3>
-            <button onclick="closeSearchModal()" style="background: none; border: none; color: #8e8e93; font-size: 20px; cursor: pointer; padding: 4px 8px;">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" style="padding: 20px;">
-            <input type="text" id="searchInput"
-                   style="width: 100%; background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 12px; padding: 12px 16px; color: white; font-size: 16px; font-family: 'Unbounded', cursive; outline: none; box-sizing: border-box;"
-                   placeholder="Введите слово для поиска..."
-                   oninput="handleSearchInput(this.value)">
-            <div id="searchResults" style="max-height: 400px; overflow-y: auto; margin-top: 16px;">
-                <div style="text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 14px;">
-                    Введите слово для поиска (минимум 2 символа)
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -5891,13 +5665,6 @@
             <div class="burger-item-icon"><i class="fas fa-bookmark"></i></div>
             <span>Избранное</span>
         </div>
-
-        <div class="burger-item" onclick="openFolderManager()">
-    <div class="burger-item-icon"><i class="fas fa-folder"></i></div>
-    <span>Папки с чатами</span>
-</div>
-
-
         <div class="burger-item" onclick="openBlockedUsers()">
             <div class="burger-item-icon"><i class="fas fa-ban"></i></div>
             <span>Заблокированные</span>
@@ -6643,25 +6410,6 @@ function forwardMessageTo(messageId, targetId, targetType) {
     function openChat(id, type) {
     const numericId = parseInt(id);
 
-
-    // Сохраняем текущую папку
-    forceKeepFolder();
-
-
-
-    // Сохраняем, что мы открыли чат из папки
-    if (currentFolderId) {
-        console.log('📁 Открытие чата из папки:', currentFolderId);
-        // НЕ переключаем папку
-    }
-
-
-    // ВАЖНО: предотвращаем переключение папки
-    if (currentFolderId) {
-        // Сохраняем текущую папку в sessionStorage
-        sessionStorage.setItem('currentFolderId', currentFolderId);
-    }
-
     if (type === 'personal') {
         fetch(`/api/is_user_blocked/${numericId}`)
             .then(r => r.json())
@@ -6679,9 +6427,6 @@ function forwardMessageTo(messageId, targetId, targetType) {
 }
 
 function continueOpenChat(id, type) {
-    // Сохраняем текущую папку
-    forceKeepFolder();
-
     currentChat = { id: parseInt(id), type: type };
     currentChatType = type;
 
@@ -6695,9 +6440,11 @@ function continueOpenChat(id, type) {
                 currentChat.chat_id = d.chat_id;
                 currentChat.other_user_id = d.other_user.id;
 
+                // ===== ВАЖНО: Сначала проверяем кастомное имя контакта =====
                 fetch(`/api/check_contact/${d.other_user.id}`)
                     .then(r => r.json())
                     .then(contactInfo => {
+                        // Если есть кастомное имя — используем его, иначе оригинальное
                         const displayName = contactInfo.contact_name ||
                                            d.other_user.display_name ||
                                            d.other_user.username;
@@ -6706,6 +6453,7 @@ function continueOpenChat(id, type) {
                         document.getElementById('chatUserName').textContent = displayName;
                     })
                     .catch(() => {
+                        // Если ошибка — используем оригинальное
                         currentChat.name = d.other_user.display_name || d.other_user.username;
                         document.getElementById('chatUserName').textContent = currentChat.name;
                     });
@@ -6773,18 +6521,6 @@ function continueOpenChat(id, type) {
         document.getElementById('sidebar').classList.remove('active');
     }
     renderChatsList();
-
-    // После открытия чата проверяем, не переключилась ли папка
-    setTimeout(() => {
-        const savedFolderId = sessionStorage.getItem('currentFolderId');
-        if (savedFolderId && currentFolderId !== parseInt(savedFolderId)) {
-            // Восстанавливаем папку
-            selectFolder(parseInt(savedFolderId));
-        } else if (currentFolderId) {
-            // Просто обновляем список
-            refreshFolderChats();
-        }
-    }, 500);
 }
 
     function addUnsubscribeButton() {
@@ -8544,14 +8280,9 @@ function openUserProfileModal(userId) {
                                                 <button class="action-btn" onclick="startVideoCallToUser(${user.id}); closeModal('tempModal');">
                                                     <i class="fas fa-video"></i><span>Видео</span>
                                                 </button>
-
-
-                                                <button class="action-btn" onclick="openSearchFromProfile()">
+                                                <button class="action-btn" onclick="showChatSearchModal(${currentChat ? currentChat.chat_id : ''}); closeModal('tempModal');">
                                                     <i class="fas fa-search"></i><span>Поиск</span>
                                                 </button>
-
-
-
                                                 <button class="more-btn" onclick="showUserMenu(${user.id})">
                                                     <i class="fas fa-ellipsis-h"></i><span>ещё</span>
                                                 </button>
@@ -8634,8 +8365,8 @@ function openUserProfileModal(userId) {
                                                     <i class="fas fa-video"></i><span>Видео</span>
                                                 </button>
                                                 <button class="action-btn" onclick="showChatSearchModal(${currentChat ? currentChat.chat_id : ''}); closeModal('tempModal');">
-    <i class="fas fa-search"></i><span>Поиск</span>
-</button>
+                                                    <i class="fas fa-search"></i><span>Поиск</span>
+                                                </button>
                                                 <button class="more-btn" onclick="showUserMenu(${user.id})">
                                                     <i class="fas fa-ellipsis-h"></i><span>ещё</span>
                                                 </button>
@@ -10235,158 +9966,75 @@ function removeContactById(userId) {
         document.getElementById('chatUserAvatar').innerHTML = '<span>?</span>';
     }
 
-
-// ===== ФУНКЦИЯ ПОИСКА В ЧАТЕ (ГЛОБАЛЬНАЯ) =====
-function showChatSearchModal(chatId) {
-    console.log('🔍 showChatSearchModal вызвана с chatId:', chatId);
-
-    // Проверяем, что передан ID чата
-    if (!chatId) {
-        // Если не передан, пытаемся взять из currentChat
-        if (currentChat) {
-            chatId = currentChat.chat_id || currentChat.id;
-        } else {
-            alert('⚠️ Выберите чат для поиска');
-            return;
-        }
-    }
-
-    // Создаем простое модальное окно
-    let html = `
-        <div style="background: #0f0f0f; border-radius: 20px; overflow: hidden; color: white; width: 100%; max-width: 500px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #2c2c2e;">
-                <div style="font-size: 18px; font-weight: 600;">🔍 Поиск в чате</div>
-                <button onclick="closeModal('tempModal')" style="background: none; border: none; color: #8e8e93; font-size: 20px; cursor: pointer;">✕</button>
-            </div>
-            <div style="padding: 20px;">
-                <input type="text" id="chatSearchInput"
-                       style="width: 100%; background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 12px; padding: 12px 16px; color: white; font-size: 16px; font-family: var(--font-family); outline: none;"
-                       placeholder="Введите слово для поиска..."
-                       oninput="searchInChatSimple()">
-                <div id="searchResultsContainer" style="max-height: 350px; overflow-y: auto; margin-top: 16px;">
-                    <div style="text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 14px;">
-                        Введите слово для поиска (минимум 2 символа)
+    function showChatSearchModal(chatId) {
+        if (!chatId) return;
+        let html = `
+            <div class="profile-field">
+                <label>Поиск по сообщениям</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <input type="text" id="chatSearchInput" class="modal-input" style="flex:1;" placeholder="Введите слово для поиска..." oninput="searchInChatWithNavigation()">
+                    <div style="display: flex; gap: 4px;">
+                        <button class="modal-btn modal-btn-secondary" onclick="navigateSearch(-1)" style="padding: 12px 16px;">↑</button>
+                        <button class="modal-btn modal-btn-secondary" onclick="navigateSearch(1)" style="padding: 12px 16px;">↓</button>
                     </div>
                 </div>
+                <div id="searchCounter" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;"></div>
             </div>
-        </div>
-    `;
-
-    // Показываем модальное окно
-    document.getElementById('tempModalBody').innerHTML = html;
-    openModal('tempModal');
-
-    // Сохраняем ID чата для поиска
-    window.currentSearchChatId = chatId;
-
-    // Фокусируем поле ввода
-    setTimeout(() => {
-        const input = document.getElementById('chatSearchInput');
-        if (input) {
-            input.focus();
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    searchInChatSimple();
-                }
-            });
-        }
-    }, 300);
-}
-
-// Упрощенная функция поиска
-async function searchInChatSimple() {
-    const input = document.getElementById('chatSearchInput');
-    const container = document.getElementById('searchResultsContainer');
-
-    if (!input || !container) return;
-
-    const query = input.value.trim();
-
-    if (query.length < 2) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 14px;">
-                Введите минимум 2 символа
-            </div>
+            <div id="chatSearchResults" class="search-results-inline"></div>
         `;
-        return;
+        showModal('Поиск в чате', html);
+        window.currentSearchChatId = chatId;
+        document.getElementById('chatSearchInput')?.focus();
     }
 
-    container.innerHTML = `
-        <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
-            <i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i>
-            <div style="margin-top: 12px;">Поиск...</div>
-        </div>
-    `;
+    async function searchInChatWithNavigation() {
+        const query = document.getElementById('chatSearchInput')?.value.trim();
+        const resultsDiv = document.getElementById('chatSearchResults');
+        const counterDiv = document.getElementById('searchCounter');
 
-    try {
+        if (!query || query.length < 2) {
+            if (resultsDiv) resultsDiv.innerHTML = '';
+            if (counterDiv) counterDiv.innerHTML = '';
+            searchResultsList = [];
+            currentSearchIndex = -1;
+            return;
+        }
+
         const response = await fetch('/api/search_in_chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: window.currentSearchChatId,
-                query: query
-            })
+            body: JSON.stringify({ chat_id: window.currentSearchChatId, query: query })
         });
-
         const data = await response.json();
 
-        if (!data.messages || data.messages.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
-                    Ничего не найдено
-                </div>
-            `;
-            return;
+        if (data.messages && data.messages.length) {
+            searchResultsList = data.messages;
+            currentSearchIndex = 0;
+
+            if (counterDiv) counterDiv.innerHTML = `Найдено: ${searchResultsList.length} сообщений`;
+
+            let html = '';
+            data.messages.forEach((msg, idx) => {
+                let content = msg.content || '';
+                const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                content = content.replace(regex, '<span class="search-highlight">$1</span>');
+
+                html += `
+                    <div class="search-result-message" data-search-index="${idx}" onclick="scrollToMessageAndClose(${msg.id})">
+                        <div class="search-result-message-text">${content || '[Медиафайл]'}</div>
+                        <div class="search-result-message-meta">${msg.is_mine ? 'Вы' : escapeHtml(msg.display_name || msg.username)} • ${new Date(msg.created_at).toLocaleString()}</div>
+                    </div>
+                `;
+            });
+            resultsDiv.innerHTML = html;
+            highlightCurrentSearchResult();
+        } else {
+            resultsDiv.innerHTML = '<div class="search-result-message">Ничего не найдено</div>';
+            if (counterDiv) counterDiv.innerHTML = 'Найдено: 0';
+            searchResultsList = [];
+            currentSearchIndex = -1;
         }
-
-        let html = '';
-        data.messages.forEach((msg) => {
-            html += `
-                <div onclick="closeModal('tempModal'); scrollToMessage(${msg.id})"
-                     style="padding: 12px; border-bottom: 1px solid #1c1c1e; cursor: pointer;"
-                     onmouseover="this.style.background='#1c1c1e'"
-                     onmouseout="this.style.background='transparent'">
-                    <div style="font-weight: 500;">${escapeHtml(msg.content || '[Медиа]')}</div>
-                    <div style="font-size: 11px; color: #8e8e93;">${new Date(msg.created_at).toLocaleString()}</div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
-
-    } catch (error) {
-        console.error('Ошибка:', error);
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #ff3b30;">
-                Ошибка при поиске
-            </div>
-        `;
     }
-}
-
-
-// Переход к сообщению
-function scrollToMessage(messageId) {
-    const msgDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
-    if (msgDiv) {
-        msgDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Подсветка
-        msgDiv.style.backgroundColor = 'rgba(102, 126, 234, 0.2)';
-        msgDiv.style.borderRadius = '12px';
-        msgDiv.style.padding = '4px';
-        setTimeout(() => {
-            msgDiv.style.backgroundColor = '';
-            msgDiv.style.padding = '';
-        }, 3000);
-    } else {
-        showToast('Сообщение не найдено в текущей загрузке. Обновите чат.');
-    }
-}
-
-// Вспомогательная функция для escape
-function escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
     function navigateSearch(direction) {
         if (searchResultsList.length === 0) return;
@@ -11055,247 +10703,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-
-
-
-
-
-
-    // ===== ПОИСКОВАЯ МОДАЛКА - ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ =====
-
-function openSearchModal() {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.classList.add('active');
-        console.log('✅ Поисковая модалка открыта');
-
-        // Сбрасываем результаты
-        const results = document.getElementById('searchResults');
-        if (results) {
-            results.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 14px;">
-                    Введите слово для поиска (минимум 2 символа)
-                </div>
-            `;
-        }
-
-        // Очищаем поле ввода
-        const input = document.getElementById('searchInput');
-        if (input) {
-            input.value = '';
-            input.focus();
-        }
-    } else {
-        console.error('❌ Модалка searchModal не найдена!');
-    }
-}
-
-function closeSearchModal() {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.classList.remove('active');
-        console.log('✅ Поисковая модалка закрыта');
-    }
-}
-
-// Обработчик ввода с задержкой
-let searchTimeout = null;
-
-function handleSearchInput(value) {
-    clearTimeout(searchTimeout);
-    const query = value.trim();
-
-    if (query.length < 2) {
-        const results = document.getElementById('searchResults');
-        if (results) {
-            results.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #8e8e93; font-size: 14px;">
-                    Введите минимум 2 символа
-                </div>
-            `;
-        }
-        return;
-    }
-
-    // Задержка 300мс перед поиском (чтобы не спамить API)
-    searchTimeout = setTimeout(() => {
-        performSearch(query);
-    }, 300);
-}
-
-// Основная функция поиска
-async function performSearch(query) {
-    const results = document.getElementById('searchResults');
-    if (!results) return;
-
-    // Показываем загрузку
-    results.innerHTML = `
-        <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
-            <i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i>
-            <div style="margin-top: 12px;">Поиск: "${escapeHtml(query)}"</div>
-        </div>
-    `;
-
-    // Получаем ID чата
-    let chatId = null;
-    if (currentChat) {
-        chatId = currentChat.chat_id || currentChat.id;
-    }
-
-    if (!chatId) {
-        results.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #ff3b30;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; opacity: 0.5; margin-bottom: 16px; display: block;"></i>
-                Выберите чат для поиска
-            </div>
-        `;
-        return;
-    }
-
-    try {
-        console.log('🔍 Отправка запроса поиска:', { chat_id: chatId, query: query });
-
-        const response = await fetch('/api/search_in_chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                query: query
-            })
-        });
-
-        const data = await response.json();
-
-        console.log('📦 Ответ сервера:', data);
-
-        // Проверяем, есть ли сообщения
-        if (!data.messages || data.messages.length === 0) {
-            results.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: #8e8e93;">
-                    <i class="fas fa-search" style="font-size: 48px; opacity: 0.3; margin-bottom: 16px; display: block;"></i>
-                    Ничего не найдено по запросу "${escapeHtml(query)}"
-                </div>
-            `;
-            return;
-        }
-
-        // Формируем HTML с результатами
-        let html = `
-            <div style="margin-bottom: 12px; color: #8e8e93; font-size: 13px; padding: 0 4px;">
-                Найдено: ${data.messages.length} сообщений
-            </div>
-        `;
-
-        data.messages.forEach((msg) => {
-            // Определяем отправителя
-            const isMine = msg.sender_id == currentUser.id;
-            const senderName = isMine ? 'Вы' : (msg.display_name || msg.username || 'Пользователь');
-            const senderInitial = senderName[0].toUpperCase();
-
-            // Форматируем время
-            const time = new Date(msg.created_at);
-            const timeStr = time.toLocaleString('ru-RU', {
-                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-            });
-
-            // Содержимое сообщения
-            let content = msg.content || '[Медиафайл]';
-
-            // Подсветка найденного слова (только если есть текст)
-            if (msg.content) {
-                const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-                content = content.replace(regex, '<span style="background: #ffd700; color: #000; padding: 0 4px; border-radius: 4px;">$1</span>');
-            }
-
-            html += `
-                <div onclick="closeSearchModal(); scrollToMessage(${msg.id})"
-                     style="padding: 14px; border-bottom: 1px solid #1c1c1e; cursor: pointer; transition: background 0.2s;"
-                     onmouseover="this.style.background='#1c1c1e'"
-                     onmouseout="this.style.background='transparent'">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px;">
-                        <div style="width: 36px; height: 36px; border-radius: 50%; background: ${isMine ? 'var(--primary-gradient)' : 'linear-gradient(135deg, #10b981, #059669)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; overflow: hidden; flex-shrink: 0;">
-                            ${msg.avatar ? `<img src="/${msg.avatar}" style="width: 100%; height: 100%; object-fit: cover;">` : senderInitial}
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <div style="font-weight: 500; font-size: 14px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(senderName)}</div>
-                            <div style="font-size: 11px; color: #8e8e93;">${timeStr}</div>
-                        </div>
-                        ${msg.file_type ? `<span style="font-size: 11px; color: #8e8e93; background: #1c1c1e; padding: 2px 8px; border-radius: 10px; flex-shrink: 0;">${msg.file_type}</span>` : ''}
-                    </div>
-                    <div style="font-size: 14px; color: #e0e0e0; line-height: 1.4; padding-left: 48px;">
-                        ${content}
-                    </div>
-                </div>
-            `;
-        });
-
-        results.innerHTML = html;
-
-        // Показываем тост с количеством
-        showToast(`🔍 Найдено ${data.messages.length} сообщений`);
-
-    } catch (error) {
-        console.error('❌ Ошибка поиска:', error);
-        results.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #ff3b30;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; opacity: 0.5; margin-bottom: 16px; display: block;"></i>
-                Ошибка при поиске: ${error.message}
-            </div>
-        `;
-    }
-}
-
-// Функция для прокрутки к сообщению
-function scrollToMessage(messageId) {
-    const msgDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
-
-    if (msgDiv) {
-        msgDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        msgDiv.style.backgroundColor = 'rgba(102, 126, 234, 0.3)';
-        msgDiv.style.borderRadius = '12px';
-        msgDiv.style.transition = 'background 0.5s';
-
-        setTimeout(() => {
-            msgDiv.style.backgroundColor = '';
-            msgDiv.style.borderRadius = '';
-        }, 3000);
-
-        showToast('✅ Сообщение найдено');
-    } else {
-        showToast('🔄 Сообщение не найдено в текущей загрузке');
-    }
-}
-
-// Вспомогательные функции
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Функция для открытия поиска из профиля
-function openSearchFromProfile() {
-    // Закрываем профиль
-    closeModal('tempModal');
-    // Открываем поиск с задержкой
-    setTimeout(openSearchModal, 300);
-}
-
-
-
-
-
-
 </script>
 
 <script src="{{ url_for('static', filename='js/call.js') }}"></script>
-<script src="{{ url_for('static', filename='js/folders.js') }}"></script>
-
 
 </body>
 </html>
