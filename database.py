@@ -162,6 +162,34 @@ def init_db():
         )
     ''')
 
+    # Таблица папок чатов - ДОБАВИТЬ
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS chat_folders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
+    # Таблица чатов в папках - ДОБАВИТЬ
+    # В init_db() замените создание таблицы folder_chats на:
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS folder_chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            chat_type TEXT NOT NULL,
+            chat_name TEXT,
+            chat_avatar TEXT,
+            other_user_id INTEGER,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+            FOREIGN KEY (folder_id) REFERENCES chat_folders(id) ON DELETE CASCADE
+        )
+    ''')
+
     # Таблица video_calls
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS video_calls (
@@ -416,6 +444,34 @@ def init_db():
             UNIQUE(story_id, user_id)
         )
     ''')
+
+    # В функции init_db() добавьте:
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chat_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS folder_chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER NOT NULL,
+            chat_id INTEGER NOT NULL,
+            chat_type TEXT NOT NULL,
+            chat_name TEXT,
+            chat_avatar TEXT,
+            created_at DATETIME DEFAULT (datetime('now', '+3 hours')),
+            FOREIGN KEY (folder_id) REFERENCES chat_folders(id) ON DELETE CASCADE
+        )
+    ''')
+
+
+
 
     # Индексы
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_blocked_users_user_id ON blocked_users(user_id)')
@@ -698,6 +754,13 @@ def complete_registration(user_id, username, display_name, avatar=None):
             SET username = ?, display_name = ?, avatar = ?, registration_complete = 1
             WHERE id = ?
         ''', (username, display_name or username, avatar, user_id))
+
+        # ===== ВАЖНО: Создаем папку "Все чаты" для нового пользователя =====
+        cursor.execute('''
+            INSERT OR IGNORE INTO chat_folders (user_id, name, sort_order)
+            VALUES (?, 'Все чаты', 0)
+        ''', (user_id,))
+
         conn.commit()
         return True
     except Exception as e:
@@ -2444,6 +2507,365 @@ def get_master_account(user_id):
     except Exception as e:
         print(f"❌ Error getting master account: {e}")
         return user_id
+
+
+# ===== ПАПКИ ЧАТОВ =====
+
+def create_folder(user_id, name, chat_ids):
+    """Создает новую папку с чатами"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        print(f"📁 create_folder: user_id={user_id}, name='{name}', chat_ids={chat_ids}")
+
+        # Проверяем количество папок
+        cursor.execute('SELECT COUNT(*) as count FROM chat_folders WHERE user_id = ?', (user_id,))
+        count = cursor.fetchone()['count']
+        if count >= 3:
+            return {'success': False, 'error': 'limit_reached'}
+
+        # Проверяем, существует ли уже папка с таким именем
+        cursor.execute('SELECT id FROM chat_folders WHERE user_id = ? AND name = ?', (user_id, name))
+        existing = cursor.fetchone()
+        if existing:
+            return {'success': False, 'error': 'folder_exists'}
+
+        # Получаем максимальный порядок
+        cursor.execute('SELECT MAX(sort_order) as max_order FROM chat_folders WHERE user_id = ?', (user_id,))
+        max_order = cursor.fetchone()['max_order'] or 0
+        new_order = max_order + 1
+
+        # Вставляем папку
+        cursor.execute('''
+            INSERT INTO chat_folders (user_id, name, sort_order)
+            VALUES (?, ?, ?)
+        ''', (user_id, name, new_order))
+        folder_id = cursor.lastrowid
+
+        # Добавляем чаты в папку с полной информацией
+        if chat_ids and len(chat_ids) > 0:
+            for chat_id in chat_ids:
+                # Упрощённый запрос с правильным количеством параметров
+                cursor.execute('''
+                    SELECT 
+                        CASE 
+                            WHEN EXISTS (SELECT 1 FROM chats WHERE id = ?) THEN 'personal'
+                            WHEN EXISTS (SELECT 1 FROM groups WHERE id = ?) THEN 'group'
+                            WHEN EXISTS (SELECT 1 FROM channels WHERE id = ?) THEN 'channel'
+                            ELSE 'personal'
+                        END as chat_type,
+                        COALESCE(
+                            (SELECT u.display_name FROM users u WHERE u.id = (
+                                SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                            )),
+                            (SELECT u.username FROM users u WHERE u.id = (
+                                SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                            )),
+                            (SELECT name FROM groups WHERE id = ?),
+                            (SELECT name FROM channels WHERE id = ?),
+                            'Чат'
+                        ) as chat_name,
+                        COALESCE(
+                            (SELECT u.avatar FROM users u WHERE u.id = (
+                                SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                            )),
+                            (SELECT avatar FROM groups WHERE id = ?),
+                            (SELECT avatar FROM channels WHERE id = ?),
+                            ''
+                        ) as chat_avatar,
+                        (
+                            SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                        ) as other_user_id
+                ''', (chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id,
+                      chat_id, chat_id, chat_id, chat_id))
+                chat_info = cursor.fetchone()
+
+                chat_type = chat_info['chat_type'] if chat_info else 'personal'
+                chat_name = chat_info['chat_name'] if chat_info else 'Чат'
+                chat_avatar = chat_info['chat_avatar'] if chat_info else ''
+                other_user_id = chat_info['other_user_id'] if chat_info else None
+
+                cursor.execute('''
+                    INSERT INTO folder_chats (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id))
+
+            print(f"📁 Added {len(chat_ids)} chats to folder")
+
+        conn.commit()
+        return {'success': True, 'folder_id': folder_id}
+    except Exception as e:
+        print(f"❌ Error in create_folder: {e}")
+        import traceback
+        traceback.print_exc()
+        conn.rollback()
+        return {'success': False, 'error': str(e)}
+    finally:
+        conn.close()
+
+
+def update_folder_name(folder_id, new_name):
+    """Обновляет название папки"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE chat_folders SET name = ? WHERE id = ?', (new_name, folder_id))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def get_user_folders(user_id):
+    """Получает все папки пользователя с их чатами"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Получаем папки
+    cursor.execute('''
+        SELECT id, name, sort_order, created_at
+        FROM chat_folders
+        WHERE user_id = ?
+        ORDER BY sort_order ASC
+    ''', (user_id,))
+    folders = cursor.fetchall()
+
+    result = []
+    for folder in folders:
+        folder_dict = dict(folder)
+        # Получаем чаты в папке
+        cursor.execute('''
+            SELECT fc.chat_id, fc.chat_type, fc.chat_name, fc.chat_avatar, fc.other_user_id
+            FROM folder_chats fc
+            WHERE fc.folder_id = ?
+            ORDER BY fc.id
+        ''', (folder_dict['id'],))
+        chats = cursor.fetchall()
+        folder_dict['chats'] = [dict(chat) for chat in chats]
+        folder_dict['is_default'] = (folder_dict['name'] == 'Все чаты' and folder_dict['sort_order'] == 0)
+        result.append(folder_dict)
+
+    conn.close()
+    return result
+
+
+def delete_folder(folder_id, user_id):
+    """Удаляет папку (только не 'Все чаты')"""
+    conn = get_db()
+    cursor = conn.cursor()
+    # Проверяем, не является ли папка дефолтной
+    cursor.execute('SELECT name FROM chat_folders WHERE id = ? AND user_id = ?', (folder_id, user_id))
+    folder = cursor.fetchone()
+    if folder and folder['name'] == 'Все чаты':
+        return False
+    cursor.execute('DELETE FROM chat_folders WHERE id = ?', (folder_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def update_folder_chats(folder_id, chat_ids):
+    """Обновляет список чатов в папке"""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        # Удаляем все текущие чаты
+        cursor.execute('DELETE FROM folder_chats WHERE folder_id = ?', (folder_id,))
+
+        # Добавляем новые чаты с полной информацией
+        for chat_id in chat_ids:
+            # Получаем информацию о чате
+            cursor.execute('''
+                SELECT 
+                    CASE 
+                        WHEN EXISTS (SELECT 1 FROM chats WHERE id = ?) THEN 'personal'
+                        WHEN EXISTS (SELECT 1 FROM groups WHERE id = ?) THEN 'group'
+                        WHEN EXISTS (SELECT 1 FROM channels WHERE id = ?) THEN 'channel'
+                        ELSE 'personal'
+                    END as chat_type,
+                    COALESCE(
+                        (SELECT u.display_name FROM users u WHERE u.id = (
+                            SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                        )),
+                        (SELECT u.username FROM users u WHERE u.id = (
+                            SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                        )),
+                        (SELECT name FROM groups WHERE id = ?),
+                        (SELECT name FROM channels WHERE id = ?),
+                        'Чат'
+                    ) as chat_name,
+                    COALESCE(
+                        (SELECT u.avatar FROM users u WHERE u.id = (
+                            SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                        )),
+                        (SELECT avatar FROM groups WHERE id = ?),
+                        (SELECT avatar FROM channels WHERE id = ?),
+                        ''
+                    ) as chat_avatar,
+                    (
+                        SELECT CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END FROM chats c WHERE c.id = ?
+                    ) as other_user_id
+            ''', (chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id, chat_id,
+                  chat_id, chat_id, chat_id, chat_id))
+            chat_info = cursor.fetchone()
+
+            chat_type = chat_info['chat_type'] if chat_info else 'personal'
+            chat_name = chat_info['chat_name'] if chat_info else 'Чат'
+            chat_avatar = chat_info['chat_avatar'] if chat_info else ''
+            other_user_id = chat_info['other_user_id'] if chat_info else None
+
+            cursor.execute('''
+                INSERT INTO folder_chats (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (folder_id, chat_id, chat_type, chat_name, chat_avatar, other_user_id))
+
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"❌ Error updating folder chats: {e}")
+        conn.rollback()
+        return False
+    finally:
+        conn.close()
+
+
+def get_chat_info_for_folder(chat_id, chat_type):
+    """Получает информацию о чате для добавления в папку"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    if chat_type == 'personal':
+        cursor.execute('''
+            SELECT 
+                'personal' as chat_type,
+                CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
+                     ELSE COALESCE(u.display_name, u.username) END as chat_name,
+                u.avatar as chat_avatar,
+                CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id
+            FROM chats c
+            LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
+            WHERE c.id = ?
+        ''', (chat_id, chat_id, chat_id))
+    elif chat_type == 'group':
+        cursor.execute('''
+            SELECT 
+                'group' as chat_type,
+                name as chat_name,
+                avatar as chat_avatar,
+                NULL as other_user_id
+            FROM groups
+            WHERE id = ?
+        ''', (chat_id,))
+    elif chat_type == 'channel':
+        cursor.execute('''
+            SELECT 
+                'channel' as chat_type,
+                name as chat_name,
+                avatar as chat_avatar,
+                NULL as other_user_id
+            FROM channels
+            WHERE id = ?
+        ''', (chat_id,))
+
+    info = cursor.fetchone()
+    conn.close()
+    return info
+
+
+def get_folder_accessible_chats(user_id):
+    """Возвращает все доступные чаты для добавления в папки"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Личные чаты
+    cursor.execute('''
+        SELECT 
+            c.id as chat_id,
+            'personal' as chat_type,
+            CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END as other_user_id,
+            CASE WHEN c.user1_id = c.user2_id THEN 'Избранное'
+                 ELSE COALESCE(cn.name, u.display_name, u.username) END as name,
+            u.avatar,
+            'personal' as type_label
+        FROM chats c
+        LEFT JOIN users u ON (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END) = u.id
+        LEFT JOIN contact_names cn ON cn.user_id = ? AND cn.contact_id = u.id
+        WHERE (c.user1_id = ? OR c.user2_id = ?) AND u.is_deleted = 0
+        GROUP BY c.id
+    ''', (user_id, user_id, user_id, user_id, user_id))
+    personal = cursor.fetchall()
+
+    # Группы
+    cursor.execute('''
+        SELECT 
+            g.id as chat_id,
+            'group' as chat_type,
+            g.id as group_id,
+            g.name,
+            g.avatar,
+            'group' as type_label
+        FROM groups g
+        JOIN group_members gm ON g.id = gm.group_id
+        WHERE gm.user_id = ?
+    ''', (user_id,))
+    groups = cursor.fetchall()
+
+    # Каналы
+    cursor.execute('''
+        SELECT 
+            c.id as chat_id,
+            'channel' as chat_type,
+            c.id as channel_id,
+            c.name,
+            c.avatar,
+            'channel' as type_label
+        FROM channels c
+        JOIN channel_subscribers cs ON c.id = cs.channel_id
+        WHERE cs.user_id = ?
+    ''', (user_id,))
+    channels = cursor.fetchall()
+
+    conn.close()
+
+    all_chats = []
+    for chat in personal:
+        all_chats.append(dict(chat))
+    for chat in groups:
+        all_chats.append(dict(chat))
+    for chat in channels:
+        all_chats.append(dict(chat))
+
+    return all_chats
+
+
+def migrate_existing_users_with_folders():
+    """Создает папку 'Все чаты' для существующих пользователей"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Получаем всех пользователей
+    cursor.execute('SELECT id FROM users WHERE registration_complete = 1')
+    users = cursor.fetchall()
+
+    for user in users:
+        user_id = user['id']
+        # Проверяем, есть ли уже папка "Все чаты"
+        cursor.execute('''
+            SELECT id FROM chat_folders 
+            WHERE user_id = ? AND name = 'Все чаты'
+        ''', (user_id,))
+        existing = cursor.fetchone()
+
+        if not existing:
+            cursor.execute('''
+                INSERT OR IGNORE INTO chat_folders (user_id, name, sort_order)
+                VALUES (?, 'Все чаты', 0)
+            ''', (user_id,))
+            print(f"✅ Создана папка 'Все чаты' для пользователя {user_id}")
+
+    conn.commit()
+    conn.close()
+    print("✅ Миграция папок завершена")
+
+
 
 # Инициализация БД при импорте
 init_db()

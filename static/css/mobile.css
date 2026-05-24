@@ -1,0 +1,474 @@
+/* ============================================
+   МОБИЛЬНАЯ ОПТИМИЗАЦИЯ NEXGRAM
+   Адаптировано от iPhone 4 до флагманов
+   ============================================ */
+
+/* Базовые настройки */
+:root {
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+    --sidebar-width: 100%;
+    --radius-large: 28px;
+    --radius-medium: 16px;
+}
+
+/* Мобильная структура */
+.app {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ===== САЙДБАР ===== */
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background: var(--bg);
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar.closed {
+    transform: translateX(-100%);
+}
+
+.sidebar-header {
+    padding: 16px 20px;
+    padding-top: calc(16px + var(--safe-top));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Табы */
+.tabs-container {
+    padding: 8px 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chat-tabs {
+    display: flex;
+    gap: 12px;
+    width: max-content;
+}
+
+.chat-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: var(--bg-secondary);
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.chat-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Поиск */
+.search-bar {
+    padding: 12px 16px;
+    position: relative;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    background: var(--bg-secondary);
+    border-radius: 30px;
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+}
+
+.search-bar i {
+    position: absolute;
+    left: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* Список чатов */
+.chats-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+/* ===== ЧАТЫ С ВОЗМОЖНОСТЬЮ СВАЙПА ===== */
+.chat-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 12px;
+    position: relative;
+    background: var(--bg);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+}
+
+.chat-item.swiped {
+    transform: translateX(-80px);
+}
+
+.chat-item .swipe-actions {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    transform: translateX(100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-item.swiped .swipe-actions {
+    transform: translateX(0);
+}
+
+.swipe-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.swipe-btn.pin { background: #f59e0b; }
+.swipe-btn.delete { background: #ef4444; }
+.swipe-btn.read { background: #3b82f6; }
+
+/* ===== ОБЛАСТЬ ЧАТА ===== */
+.chat-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+    background: var(--bg);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-area.open {
+    transform: translateX(0);
+}
+
+.chat-header-area {
+    padding: 12px 16px;
+    padding-top: calc(12px + var(--safe-top));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.back-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text);
+}
+
+/* Сообщения */
+.messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.message {
+    display: flex;
+    max-width: 80%;
+    margin-bottom: 4px;
+    animation: fadeInMessage 0.2s ease;
+}
+
+@keyframes fadeInMessage {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.outgoing { align-self: flex-end; justify-content: flex-end; }
+.message.incoming { align-self: flex-start; justify-content: flex-start; }
+
+.message-bubble {
+    padding: 10px 14px;
+    border-radius: var(--radius-medium);
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.message.outgoing .message-bubble {
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message.incoming .message-bubble {
+    background: var(--bg-secondary);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+}
+
+/* Поле ввода */
+.message-input-area {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + var(--safe-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.message-input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 24px;
+    background: var(--bg-secondary);
+    border: none;
+    font-family: inherit;
+    font-size: 15px;
+    resize: none;
+    max-height: 100px;
+    line-height: 1.4;
+}
+
+.send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: none;
+    color: white;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== КОНТЕКСТНОЕ МЕНЮ ===== */
+.context-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg);
+    border-radius: var(--radius-large) var(--radius-large) 0 0;
+    padding: 20px 20px 40px;
+    padding-bottom: calc(40px + var(--safe-bottom));
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+}
+
+.context-menu.open {
+    transform: translateY(0);
+}
+
+.context-menu-item {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-radius: 12px;
+    transition: background 0.15s;
+    font-size: 16px;
+}
+
+.context-menu-item:active {
+    background: var(--bg-secondary);
+}
+
+.context-menu-item i {
+    width: 24px;
+    text-align: center;
+    color: var(--primary);
+}
+
+.context-menu-item.danger { color: #ef4444; }
+.context-menu-item.danger i { color: #ef4444; }
+
+.context-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0;
+}
+
+.context-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.context-menu-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ===== МОДАЛЬНЫЕ ОКНА ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+#tempModalBody {
+    background: var(--bg);
+    width: 100%;
+    max-height: 90%;
+    border-radius: var(--radius-large) var(--radius-large) 0 0;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* ===== АДАПТАЦИЯ ПОД РАЗНЫЕ ЭКРАНЫ ===== */
+@media (max-width: 380px) {
+    /* iPhone 4 / SE (1st gen) */
+    .chat-tab { font-size: 12px; padding: 6px 12px; }
+    .message { max-width: 90%; font-size: 14px; }
+    .chat-item { padding: 10px 12px; }
+    .chat-avatar { width: 44px; height: 44px; }
+    .sidebar-header h2 { font-size: 20px; }
+}
+
+@media (min-width: 381px) and (max-width: 600px) {
+    /* Базовые мобильные */
+    .sidebar { width: 100%; }
+    .chat-tab { font-size: 14px; padding: 8px 16px; }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+    /* Планшеты */
+    .sidebar {
+        width: 380px;
+        position: relative;
+        transform: none !important;
+        border-right: 1px solid var(--border);
+    }
+    .chat-area {
+        position: relative;
+        transform: none !important;
+        flex: 1;
+    }
+    .back-btn { display: none; }
+    .sidebar-header h2 { display: block; }
+}
+
+@media (min-width: 1025px) {
+    /* Десктоп */
+    .sidebar {
+        width: 380px;
+        position: relative;
+        transform: none !important;
+        border-right: 1px solid var(--border);
+    }
+    .chat-area {
+        position: relative;
+        transform: none !important;
+        flex: 1;
+    }
+    .back-btn { display: none; }
+}
+
+/* ===== ЖЕСТЫ И АНИМАЦИИ ===== */
+.touch-feedback {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.15);
+    pointer-events: none;
+    animation: touchRipple 0.4s ease-out forwards;
+}
+
+@keyframes touchRipple {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* Вибро-отклик */
+.haptic-feedback {
+    animation: hapticPulse 0.1s ease;
+}
+
+@keyframes hapticPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.98); }
+    100% { transform: scale(1); }
+}
+
+/* Скрытие скроллбаров на iOS */
+::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
